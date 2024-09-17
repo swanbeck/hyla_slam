@@ -1,0 +1,34 @@
+#pragma once
+
+#include <string>
+#include <set>
+#include <Eigen/Dense>
+
+namespace hylacomylus {
+
+struct Pose3D 
+{
+    Eigen::Vector3d position;
+    Eigen::Quaterniond orientation;
+}; // struct Pose3D
+
+struct MappingConfig
+{
+    std::string fixed_frame;
+    std::string robot_frame;
+    std::string odom_frame;
+    
+    int chunk_discretization;
+    std::string chunk_load_dir;
+    double half_side_length;
+}; // struct MappingConfig
+
+struct MappingResult
+{
+    std::uint32_t collection_id;
+    std::set<std::uint64_t> hashes;
+    MappingResult(std::uint32_t stamp, std::set<std::uint64_t> hashset) : collection_id(stamp), hashes(hashset) 
+    {}
+}; // struct MappingResult
+
+} // namespace hylacomylus
