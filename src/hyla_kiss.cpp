@@ -55,7 +55,12 @@ void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
 
     local_map_.Clear();
 
-    local_map_.Update(frame_downsample, last_pose_);
+    // local_map_.Update(frame_downsample, last_pose_);
+    Eigen::Vector3d origin;
+    origin.x() = last_pose_.translation().x();
+    origin.y() = last_pose_.translation().y();
+    origin.z() = last_pose_.translation().z();
+    local_map_.Update(frame_downsample, origin);
 }
 
 } // namespace hylacomylus

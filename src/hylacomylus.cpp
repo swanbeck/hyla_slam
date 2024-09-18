@@ -8,6 +8,9 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     atlas_ = std::make_unique<std::map<std::uint64_t, Chunk>>();
     hasher_ = std::make_unique<ChunkHasher>(config_.chunk_discretization);
     collection_history_ = std::make_unique<std::stack<MappingResult>>();
+
+    auto local_hashes {updateNeighborhood(Pose3D())};
+    composeLocalMap(local_hashes);
 }
 
 Hylacomylus::~Hylacomylus()

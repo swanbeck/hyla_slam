@@ -5,6 +5,8 @@ namespace hylacomylus {
 RosNode::RosNode(const rclcpp::NodeOptions &opts)
 : rclcpp::Node("hyla_slam", opts), counter_(0)
 {
+    pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS); // prevent conversion warnings to be printed constantly
+
     // TODO get parameters to fill out the configs
 
     // create the configs
@@ -40,7 +42,7 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
     subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "/ouster/points",
         rclcpp::QoS(rclcpp::KeepLast(1)).best_effort(),
-        std::bind(&RosNode::handleNewFrame, this, std::placeholders::_1)
+        std::bind(&RosNode::handleNewFrame2, this, std::placeholders::_1)
     );
 
     reference_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -65,9 +67,79 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
 
 }
 
+void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
+{
+    RCLCPP_INFO_STREAM(this->get_logger(), "Inside handle frame : " << counter_ << ".");
+
+    // TODO transform cloud into "localization frame" (like base_link) if it is not already
+    PointCloud::Ptr raw_point_cloud (new PointCloud);
+    pcl::fromROSMsg(*msg, *raw_point_cloud);
+
+    // update cloud for localization
+    if (counter_ % 100 == 0) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "Would be setting map in localizer...");
+        // TODO
+        auto map {mapper_->map()};
+        RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points.");
+
+        if (map->points.size() > 0) {
+            auto map_msg {std::make_shared<sensor_msgs::msg::PointCloud2>()};
+            pcl::toROSMsg(*map, *map_msg);
+            localizer_->setMap(kiss_icp_ros::utils::PointCloud2ToEigen(map_msg));
+
+            map_msg->header.frame_id = "map";
+            reference_publisher_->publish(*map_msg);
+        }
+    }
+
+    // register the frame
+    localizer_->registerFrame(kiss_icp_ros::utils::PointCloud2ToEigen(msg));
+
+    // get the updated pose estimate (use this to transform the cloud before passing off to the mapping)
+    auto pose_estimate {tf2::sophusToPose(localizer_->pose())};
+    auto T_estimate {surface_repair_utils::transforms::pose2TransformationMatrix(pose_estimate)};
+
+    // update mapping
+    if (counter_ % 20 == 0) {
+        
+        // use localization to update transform for cloud
+        PointCloud::Ptr estimated_point_cloud (new PointCloud);
+        pcl::transformPointCloud(*raw_point_cloud, *estimated_point_cloud, T_estimate);
+
+        Pose3D robot_pose;
+        robot_pose.position.x() = pose_estimate.position.x;
+        robot_pose.position.y() = pose_estimate.position.y;
+        robot_pose.position.z() = pose_estimate.position.z;
+        robot_pose.orientation.w() = pose_estimate.orientation.w;
+        robot_pose.orientation.x() = pose_estimate.orientation.x;
+        robot_pose.orientation.y() = pose_estimate.orientation.y;
+        robot_pose.orientation.z() = pose_estimate.orientation.z;
+
+        mapper_->update(estimated_point_cloud, robot_pose);
+
+        auto map {mapper_->map()};
+        RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points.");
+
+        if (map->points.size() > 0) {
+            sensor_msgs::msg::PointCloud2 map_msg;
+            pcl::toROSMsg(*map, map_msg);
+            map_msg.header.frame_id = "map";
+            frame_publisher_->publish(map_msg);
+        }
+    }
+
+    auto tf {surface_repair_utils::transforms::transformationMatrix2Transform(T_estimate)};
+    geometry_msgs::msg::TransformStamped tf_stamped;
+    tf_stamped.transform = tf;
+    tf_stamped.child_frame_id = "os_sensor";
+    tf_stamped.header.frame_id = "map";
+    tf_broadcaster_->sendTransform(tf_stamped);
+
+    counter_++;
+}
+
 void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
 {
-    counter_++;
     RCLCPP_INFO_STREAM(this->get_logger(), "Inside handle frame : " << counter_ << ".");
 
     // update localization
@@ -121,7 +193,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
     RCLCPP_INFO_STREAM(this->get_logger(), "Previous pose: " << updated_pose_estimate.position.x << ", " << updated_pose_estimate.position.y << ", " << updated_pose_estimate.position.z << ".");
 
     // update mapping
-    if (counter_ % 50 == 0) {
+    if (counter_ % 10 == 0) {
 
         RCLCPP_INFO_STREAM(this->get_logger(), "Updating mapping...");
 
@@ -155,7 +227,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
             output_cloud.header.frame_id = "map";
 
             // publish this cloud, also get and publish the map?
-            // frame_publisher_->publish(output_cloud);
+            frame_publisher_->publish(output_cloud);
         }
     }
 
@@ -167,6 +239,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
     tf_stamped.header.frame_id = "map";
     tf_broadcaster_->sendTransform(tf_stamped);
 
+    counter_++;
     RCLCPP_INFO_STREAM(this->get_logger(), "Made it to the end!");
 }
 

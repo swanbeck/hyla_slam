@@ -28,6 +28,8 @@ public:
 private:
     void handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
 
+    void handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
+
     void publishOdometry();
 
     void publishMap();

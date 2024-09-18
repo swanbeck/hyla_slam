@@ -37,7 +37,6 @@ public:
 
     void update(PointCloud::Ptr &cloud, const Pose3D &robot_pose);
 
-
     PointCloud::Ptr map();
 
 private:
