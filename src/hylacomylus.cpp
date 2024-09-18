@@ -9,8 +9,7 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     hasher_ = std::make_unique<ChunkHasher>(config_.chunk_discretization);
     collection_history_ = std::make_unique<std::stack<MappingResult>>();
 
-    auto local_hashes {updateNeighborhood(Pose3D())};
-    composeLocalMap(local_hashes);
+    updateLocalMap(Pose3D());
 }
 
 Hylacomylus::~Hylacomylus()
@@ -69,18 +68,15 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
 
 void Hylacomylus::update(PointCloud::Ptr &cloud, const Pose3D &robot_pose)
 {
-    std::cout << "Input cloud has " << cloud->points.size() << " points." << std::endl;
     indexData(cloud, robot_pose);
-    auto local_hashes {updateNeighborhood(robot_pose)};
-    composeLocalMap(local_hashes);
-    std::cout << "Finished Hylacomylus update." << std::endl;
+    updateLocalMap(robot_pose);
 }
 
-std::set<std::uint64_t> Hylacomylus::updateNeighborhood(const Pose3D &robot_pose)
+void Hylacomylus::updateLocalMap(const Pose3D &robot_pose)
 {
     auto hashes {findLocalHashes(robot_pose, config_.half_side_length)};
     rescopeStorage(hashes);
-    return hashes;
+    composeLocalMap(hashes);
 }
 
 void Hylacomylus::indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose)

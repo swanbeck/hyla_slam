@@ -31,6 +31,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(
     include
@@ -80,6 +81,7 @@ ament_target_dependencies(hyla_slam_ros_node
     tf2_ros
     pcl_ros
     pcl_conversions
+    std_srvs
 )
 target_link_libraries(hyla_slam_ros_node ${PCL_LIBRARIES} hylacomylus hyla_kiss)
 

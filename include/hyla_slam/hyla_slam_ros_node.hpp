@@ -6,6 +6,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
@@ -28,11 +29,13 @@ public:
 private:
     void handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
 
-    void handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
+    void enableSLAM(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-    void publishOdometry();
+    void disableSLAM(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-    void publishMap();
+    void unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
+    double getDisplacement(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2);
 
 private:
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -52,7 +55,20 @@ private:
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> reference_publisher_;
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> frame_publisher_;
 
+    // TODO how to localize not starting from origin? need to have reasonably accurate estimate of pose and pass it in to mapper_ and localizer_ before loading starting map and/or trying to localize
     std::optional<geometry_msgs::msg::PoseStamped> initial_robot_pose_;
+
+    // first gen ros2 services
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> enable_slam_server_;
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> disable_slam_server_;
+    bool slam_enabled_;
+
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> unload_data_server_;
+
+    double localization_reference_threshold_;
+    double mapping_update_threshold_;
+    std::unique_ptr<Eigen::Vector3d> last_localization_update_point_;
+    std::unique_ptr<Eigen::Vector3d> last_mapping_update_point_;
 
 }; // class RosNode
 

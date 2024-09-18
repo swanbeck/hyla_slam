@@ -37,6 +37,8 @@ public:
 
     void update(PointCloud::Ptr &cloud, const Pose3D &robot_pose);
 
+    void dumpMemoryData();
+
     PointCloud::Ptr map();
 
 private:
@@ -46,15 +48,11 @@ private:
 
     void rescopeStorage(const std::set<std::uint64_t> &hashes);
 
-    std::set<std::uint64_t> updateNeighborhood(const Pose3D &robot_pose);
+    void updateLocalMap(const Pose3D &robot_pose);
     
     void indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose);
 
-    void dumpMemoryData();
-
     void composeLocalMap(const std::set<std::uint64_t> &hashes);
-
-    void iterateSLAM();
 
     void deleteLastData();
 

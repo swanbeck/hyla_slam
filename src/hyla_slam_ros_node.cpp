@@ -3,15 +3,25 @@
 namespace hylacomylus {
 
 RosNode::RosNode(const rclcpp::NodeOptions &opts)
-: rclcpp::Node("hyla_slam", opts), counter_(0)
+: rclcpp::Node("hyla_slam", opts), counter_(0), slam_enabled_(false)
 {
-    pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS); // prevent conversion warnings to be printed constantly
+    pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS); // prevent warnings from pcl::conversions being printed constantly
+
+    auto declareParameter = [this](std::string name, auto type_val) {
+        try {
+            return this->declare_parameter<decltype(type_val)>(name);
+        } catch(rclcpp::ParameterTypeException& e) {
+            RCLCPP_WARN(this->get_logger(), "Parameter error for parameter \"%s\": %s", name.c_str(), e.what());
+            exit(1);
+        }
+    };
+
+    localization_reference_threshold_ = declareParameter("localization_threshold", double{});
+    mapping_update_threshold_ = declareParameter("mapping_threshold", double{});
+    auto point_cloud_topic {declareParameter("point_cloud_topic", std::string{})};
 
     // TODO get parameters to fill out the configs
-
-    // create the configs
-
-    // create the two pipelines
+    // create the configs and the two pipelines
     MappingConfig mapping_config;
     mapping_config.fixed_frame = "map";
     mapping_config.robot_frame = "os_sensor";
@@ -40,9 +50,9 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
     subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/ouster/points",
+        point_cloud_topic,
         rclcpp::QoS(rclcpp::KeepLast(1)).best_effort(),
-        std::bind(&RosNode::handleNewFrame2, this, std::placeholders::_1)
+        std::bind(&RosNode::handleNewFrame, this, std::placeholders::_1)
     );
 
     reference_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -55,10 +65,56 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local()
     );
 
+    enable_slam_server_ = this->create_service<std_srvs::srv::Trigger>(
+        "enable_slam",
+        std::bind(&RosNode::enableSLAM, this, std::placeholders::_1, std::placeholders::_2)
+    );
+
+    disable_slam_server_ = this->create_service<std_srvs::srv::Trigger>(
+        "disable_slam",
+        std::bind(&RosNode::disableSLAM, this, std::placeholders::_1, std::placeholders::_2)
+    );
+
+    unload_data_server_ = this->create_service<std_srvs::srv::Trigger>(
+        "unload_data",
+        std::bind(&RosNode::unloadData, this, std::placeholders::_1, std::placeholders::_2)
+    );
 }
 
-void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
+void RosNode::enableSLAM(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+    if (slam_enabled_ == true) {
+        RCLCPP_WARN_STREAM(this->get_logger(), "SLAM already enabled!");
+    }
+    slam_enabled_ = true;
+    response->success = true;
+}
+
+void RosNode::disableSLAM(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+    if (slam_enabled_ == false) {
+        RCLCPP_WARN_STREAM(this->get_logger(), "SLAM already disabled!");
+    }
+    slam_enabled_ = false;
+    response->success = true;
+}
+
+void RosNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+    mapper_->dumpMemoryData();
+    RCLCPP_INFO(this->get_logger(), "Unloaded data in memory to disk!");
+    response->success = true;
+}
+
+double RosNode::getDisplacement(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2)
+{
+    return (p1 - p2).norm();
+}
+
+void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
+{
+    if (!slam_enabled_) { return; }
+
     RCLCPP_INFO_STREAM(this->get_logger(), "Inside handle frame : " << counter_ << ".");
 
     // TODO transform cloud into "localization frame" (like base_link) if it is not already
@@ -66,18 +122,22 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
     pcl::fromROSMsg(*msg, *raw_point_cloud);
 
     // update cloud for localization
-    if (counter_ % 100 == 0) {
-        RCLCPP_INFO_STREAM(this->get_logger(), "Would be setting map in localizer...");
-        // TODO
+    auto pose_prior = localizer_->pose();
+    if (last_localization_update_point_ == nullptr || 
+        (last_localization_update_point_ != nullptr &&
+        getDisplacement(pose_prior.translation(), *last_localization_update_point_) > localization_reference_threshold_)
+    ) {
         auto map {mapper_->map()};
-        RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points.");
-
+        RCLCPP_INFO_STREAM(this->get_logger(), "Setting map in localizer (map has " << map->points.size() << " points).");
+        // TODO
         if (map->points.size() > 0) {
             auto map_msg {std::make_shared<sensor_msgs::msg::PointCloud2>()};
             pcl::toROSMsg(*map, *map_msg);
             localizer_->setMap(kiss_icp_ros::utils::PointCloud2ToEigen(map_msg));
 
-            map_msg->header.frame_id = "map";
+            last_localization_update_point_ = std::make_unique<Eigen::Vector3d>(pose_prior.translation());
+
+            // map_msg->header.frame_id = "map";
             // reference_publisher_->publish(*map_msg);
         }
     }
@@ -90,8 +150,10 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
     auto T_estimate {surface_repair_utils::transforms::pose2TransformationMatrix(tf2::sophusToPose(pose_estimate))};
 
     // update mapping
-    if (counter_ % 20 == 0) {
-        
+    if (last_mapping_update_point_ == nullptr || 
+        (last_mapping_update_point_ != nullptr &&
+        getDisplacement(pose_estimate.translation(), *last_mapping_update_point_) > mapping_update_threshold_)
+    ) {
         // use localization to update transform for cloud
         PointCloud::Ptr estimated_point_cloud (new PointCloud);
         pcl::transformPointCloud(*raw_point_cloud, *estimated_point_cloud, T_estimate);
@@ -105,12 +167,14 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
         auto map {mapper_->map()};
         RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points.");
 
-        if (map->points.size() > 0) {
-            sensor_msgs::msg::PointCloud2 map_msg;
-            pcl::toROSMsg(*map, map_msg);
-            map_msg.header.frame_id = "map";
-            // frame_publisher_->publish(map_msg);
-        }
+        last_mapping_update_point_ = std::make_unique<Eigen::Vector3d>(pose_estimate.translation());
+
+        // if (map->points.size() > 0) {
+        //     sensor_msgs::msg::PointCloud2 map_msg;
+        //     pcl::toROSMsg(*map, map_msg);
+        //     map_msg.header.frame_id = "map";
+        //     frame_publisher_->publish(map_msg);
+        // }
     }
 
     auto tf {surface_repair_utils::transforms::transformationMatrix2Transform(T_estimate)};
@@ -121,122 +185,6 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
     tf_broadcaster_->sendTransform(tf_stamped);
 
     counter_++;
-}
-
-void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
-{
-    RCLCPP_INFO_STREAM(this->get_logger(), "Inside handle frame : " << counter_ << ".");
-
-    // update localization
-
-    // transform cloud msg into pcl
-    PointCloud::Ptr raw_point_cloud (new PointCloud);
-    pcl::fromROSMsg(*msg, *raw_point_cloud);
-
-    // transform cloud into fixed frame? or robot frame?
-    auto previous_pose_estimate {tf2::sophusToPose(localizer_->pose())};
-    auto previous_T_estimate {surface_repair_utils::transforms::pose2TransformationMatrix(previous_pose_estimate)};
-    PointCloud::Ptr raw_robot_point_cloud (new PointCloud);
-    pcl::transformPointCloud(*raw_point_cloud, *raw_robot_point_cloud, previous_T_estimate);
-
-    RCLCPP_INFO_STREAM(this->get_logger(), "Previous pose: " << previous_pose_estimate.position.x << ", " << previous_pose_estimate.position.y << ", " << previous_pose_estimate.position.z << ".");
-
-    // TODO only reset the map if we'll running hylacomylus on the update, otherwise let it update naturally
-    if (counter_ % 50 == 0) {
-        RCLCPP_INFO_STREAM(this->get_logger(), "Setting reference for localization...");
-        // set map cloud as reference
-        auto map_msg {std::make_shared<sensor_msgs::msg::PointCloud2>()};
-        auto map {mapper_->map()};
-
-        // need to transform points into the sensor localization frame here I think?
-
-        if (map->points.size() > 0) {
-            PointCloud::Ptr map_robot_frame (new PointCloud);
-            pcl::transformPointCloud(*map, *map_robot_frame, previous_T_estimate.inverse());
-
-            pcl::toROSMsg(*map_robot_frame, *map_msg);
-            std::vector<Eigen::Vector3d> map_reference {kiss_icp_ros::utils::PointCloud2ToEigen(map_msg)};
-            localizer_->setMap(map_reference);
-
-            map_msg->header.frame_id = "map";
-            reference_publisher_->publish(*map_msg);
-        }
-    }
-
-    RCLCPP_INFO_STREAM(this->get_logger(), "Registering frame...");
-
-    // feed in frame (convert cloud to proper input type)
-    localizer_->registerFrame(kiss_icp_ros::utils::PointCloud2ToEigen(msg));
-
-    // get pose out
-    auto updated_pose_estimate_sophus {localizer_->pose()};
-
-    // convert sophus pose into geometry_msgs & Pose3D?
-    auto updated_pose_estimate {tf2::sophusToPose(updated_pose_estimate_sophus)};
-    auto updated_T_estimate{surface_repair_utils::transforms::pose2TransformationMatrix(updated_pose_estimate)};
-
-    RCLCPP_INFO_STREAM(this->get_logger(), "Previous pose: " << updated_pose_estimate.position.x << ", " << updated_pose_estimate.position.y << ", " << updated_pose_estimate.position.z << ".");
-
-    // update mapping
-    if (counter_ % 10 == 0) {
-
-        RCLCPP_INFO_STREAM(this->get_logger(), "Updating mapping...");
-
-        // use it to transform cloud?
-        PointCloud::Ptr robot_point_cloud (new PointCloud);
-        // pcl::transformPointCloud(*raw_point_cloud, *robot_point_cloud, previous_T_estimate.inverse() * updated_T_estimate);
-        pcl::transformPointCloud(*raw_point_cloud, *robot_point_cloud, updated_T_estimate);
-
-        RCLCPP_INFO_STREAM(this->get_logger(), "Transformed cloud has " << robot_point_cloud->points.size() << " points.");
-
-        Pose3D robot_pose;
-        robot_pose.position.x() = updated_pose_estimate.position.x;
-        robot_pose.position.y() = updated_pose_estimate.position.y;
-        robot_pose.position.z() = updated_pose_estimate.position.z;
-        robot_pose.orientation.w() = updated_pose_estimate.orientation.w;
-        robot_pose.orientation.x() = updated_pose_estimate.orientation.x;
-        robot_pose.orientation.y() = updated_pose_estimate.orientation.y;
-        robot_pose.orientation.z() = updated_pose_estimate.orientation.z;
-
-        RCLCPP_INFO_STREAM(this->get_logger(), "Indexing data...");
-        mapper_->update(robot_point_cloud, robot_pose);
-
-        // publish odometry and map for now
-        RCLCPP_INFO_STREAM(this->get_logger(), "Publishing data...");
-        auto map {mapper_->map()};
-        RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points.");
-
-        if (map->points.size() > 0) {
-            sensor_msgs::msg::PointCloud2 output_cloud;
-            pcl::toROSMsg(*map, output_cloud);
-            output_cloud.header.frame_id = "map";
-
-            // publish this cloud, also get and publish the map?
-            frame_publisher_->publish(output_cloud);
-        }
-    }
-
-    // auto tf {surface_repair_utils::transforms::transformationMatrix2Transform(previous_T_estimate.inverse() * updated_T_estimate)};
-    auto tf {surface_repair_utils::transforms::transformationMatrix2Transform(updated_T_estimate)};
-    geometry_msgs::msg::TransformStamped tf_stamped;
-    tf_stamped.transform = tf;
-    tf_stamped.child_frame_id = "os_sensor";
-    tf_stamped.header.frame_id = "map";
-    tf_broadcaster_->sendTransform(tf_stamped);
-
-    counter_++;
-    RCLCPP_INFO_STREAM(this->get_logger(), "Made it to the end!");
-}
-
-// TODO create wall timers for these (map should only publish when updated)
-void RosNode::publishOdometry()
-{
-
-}
-
-void RosNode::publishMap()
-{
-
 }
 
 } // namespace hylacomylus
