@@ -16,7 +16,7 @@
 #include "hyla_slam/hyla_kiss.hpp"
 #include "hyla_slam/hylacomylus.hpp"
 #include "hyla_slam/types.hpp"
-#include "hyla_slam/Utils.hpp"
+#include "hyla_slam/kiss_icp_utils.hpp"
 
 namespace hylacomylus {
 

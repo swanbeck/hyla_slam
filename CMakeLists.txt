@@ -5,7 +5,6 @@ project(hyla_slam VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../kiss-icp/cpp/kiss_icp/ AND NOT IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR})
-    message("Adding subdirectory")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../kiss-icp/cpp/kiss_icp ${CMAKE_CURRENT_BINARY_DIR}/kiss_icp)
 else()
     cmake_minimum_required(VERSION 3.18)
@@ -73,8 +72,8 @@ target_link_libraries(hylacomylus PUBLIC
     ${PCL_LIBRARIES}
 )
 
-add_executable(hylacomylus_ros_node src/hylacomylus_ros_node.cpp)
-ament_target_dependencies(hylacomylus_ros_node
+add_executable(hyla_slam_ros_node src/hyla_slam_ros_node.cpp)
+ament_target_dependencies(hyla_slam_ros_node
     rclcpp
     geometry_msgs
     sensor_msgs
@@ -82,10 +81,10 @@ ament_target_dependencies(hylacomylus_ros_node
     pcl_ros
     pcl_conversions
 )
-target_link_libraries(hylacomylus_ros_node ${PCL_LIBRARIES} hylacomylus hyla_kiss)
+target_link_libraries(hyla_slam_ros_node ${PCL_LIBRARIES} hylacomylus hyla_kiss)
 
 install(TARGETS
-    hylacomylus_ros_node
+    hyla_slam_ros_node
     DESTINATION lib/${PROJECT_NAME}
 )
 

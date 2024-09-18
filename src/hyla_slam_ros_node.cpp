@@ -1,4 +1,4 @@
-#include "hyla_slam/hylacomylus_ros_node.hpp"
+#include "hyla_slam/hyla_slam_ros_node.hpp"
 
 namespace hylacomylus {
 
@@ -22,9 +22,9 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
     mapper_ = std::make_unique<Hylacomylus>(mapping_config);
 
     KissConfig localization_config;
-    localization_config.voxel_size = 1.0;
+    localization_config.voxel_size = 0.5;
     localization_config.max_range = 10.0;
-    localization_config.min_range = 2.0;
+    localization_config.min_range = 1.0;
     localization_config.max_points_per_voxel = 20;
     localization_config.min_motion_th = 0.1;
     localization_config.initial_threshold = 2.0;
@@ -55,16 +55,6 @@ RosNode::RosNode(const rclcpp::NodeOptions &opts)
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local()
     );
 
-    // odom_timer_ = this->create_wall_timer(1000ms, std::bind(&RosNode::publishOdometry, this));
-    // map_timer_ = this->create_wall_timer(3000ms, std::bind(&RosNode::publishMap, this));
-
-    // create required services
-
-    // wait for starting location to be set before starting localization
-    
-
-    // for initial testing, create sub to lidar topic and just run it
-
 }
 
 void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
@@ -88,7 +78,7 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
             localizer_->setMap(kiss_icp_ros::utils::PointCloud2ToEigen(map_msg));
 
             map_msg->header.frame_id = "map";
-            reference_publisher_->publish(*map_msg);
+            // reference_publisher_->publish(*map_msg);
         }
     }
 
@@ -96,8 +86,8 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
     localizer_->registerFrame(kiss_icp_ros::utils::PointCloud2ToEigen(msg));
 
     // get the updated pose estimate (use this to transform the cloud before passing off to the mapping)
-    auto pose_estimate {tf2::sophusToPose(localizer_->pose())};
-    auto T_estimate {surface_repair_utils::transforms::pose2TransformationMatrix(pose_estimate)};
+    auto pose_estimate {localizer_->pose()};
+    auto T_estimate {surface_repair_utils::transforms::pose2TransformationMatrix(tf2::sophusToPose(pose_estimate))};
 
     // update mapping
     if (counter_ % 20 == 0) {
@@ -107,13 +97,8 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
         pcl::transformPointCloud(*raw_point_cloud, *estimated_point_cloud, T_estimate);
 
         Pose3D robot_pose;
-        robot_pose.position.x() = pose_estimate.position.x;
-        robot_pose.position.y() = pose_estimate.position.y;
-        robot_pose.position.z() = pose_estimate.position.z;
-        robot_pose.orientation.w() = pose_estimate.orientation.w;
-        robot_pose.orientation.x() = pose_estimate.orientation.x;
-        robot_pose.orientation.y() = pose_estimate.orientation.y;
-        robot_pose.orientation.z() = pose_estimate.orientation.z;
+        robot_pose.position = pose_estimate.translation();
+        robot_pose.orientation = pose_estimate.so3().unit_quaternion();
 
         mapper_->update(estimated_point_cloud, robot_pose);
 
@@ -124,7 +109,7 @@ void RosNode::handleNewFrame2(const sensor_msgs::msg::PointCloud2::ConstSharedPt
             sensor_msgs::msg::PointCloud2 map_msg;
             pcl::toROSMsg(*map, map_msg);
             map_msg.header.frame_id = "map";
-            frame_publisher_->publish(map_msg);
+            // frame_publisher_->publish(map_msg);
         }
     }
 
