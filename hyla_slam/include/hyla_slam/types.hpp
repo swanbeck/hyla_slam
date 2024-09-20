@@ -21,6 +21,9 @@ struct MappingConfig
     int chunk_discretization;
     std::string chunk_load_dir;
     double half_side_length;
+
+    bool active_mapping;
+    bool persist_recent_chunks;
 }; // struct MappingConfig
 
 struct MappingResult

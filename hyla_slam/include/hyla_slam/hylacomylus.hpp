@@ -8,6 +8,7 @@
 #include <set>
 #include <stack>
 #include <filesystem>
+#include <optional>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -48,9 +49,9 @@ private:
 
     void rescopeStorage(const std::set<std::uint64_t> &hashes);
 
-    void updateLocalMap(const Pose3D &robot_pose);
+    void updateLocalMap(const Pose3D &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
     
-    void indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose);
+    std::set<std::uint64_t> indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose, const bool &add_data);
 
     void composeLocalMap(const std::set<std::uint64_t> &hashes);
 

@@ -68,48 +68,56 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
 
 void Hylacomylus::update(PointCloud::Ptr &cloud, const Pose3D &robot_pose)
 {
-    indexData(cloud, robot_pose);
-    updateLocalMap(robot_pose);
+    auto data_hashes {indexData(cloud, robot_pose, config_.active_mapping)};
+    updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(data_hashes) : std::nullopt);
 }
 
-void Hylacomylus::updateLocalMap(const Pose3D &robot_pose)
+void Hylacomylus::updateLocalMap(const Pose3D &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes)
 {
     auto hashes {findLocalHashes(robot_pose, config_.half_side_length)};
+    if (additional_hashes.has_value()) {
+        hashes.insert(additional_hashes.value().begin(), additional_hashes.value().end());
+    }
     rescopeStorage(hashes);
     composeLocalMap(hashes);
 }
 
-void Hylacomylus::indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose)
+std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose, const bool &add_data)
 {
-    // stamp all these points with the updated base localization before they are indexed into atlas
     std::uint32_t collection_hash {Hylacomylus::generateTimeHash()};
-
     std::set<std::uint64_t> data_hashes;
 
     // assign all points to an entry in atlas
     for (std::size_t i = 0; i < cloud->points.size(); i++) {
-        cloud->points[i].collection_id = collection_hash;
-        cloud->points[i].sensor_a = robot_pose.position.x();
-        cloud->points[i].sensor_b = robot_pose.position.y();
-        cloud->points[i].sensor_c = robot_pose.position.z();
 
         std::uint64_t hash {hasher_->generateHash(cloud->points[i])};
-
         if (!(data_hashes.contains(hash))) {
             data_hashes.insert(hash);
         }
 
-        // add an entry to atlas if it doesn't yet exist
-        if (!(atlas_->contains(hash))) {
-            atlas_->insert({hash, Chunk(hash, config_.chunk_load_dir)});
-            atlas_->at(hash).loadChunk();
-        }
+        if (add_data) {
+            // stamp all these points with the updated base localization before they are indexed into atlas
+            cloud->points[i].collection_id = collection_hash;
+            cloud->points[i].sensor_a = robot_pose.position.x();
+            cloud->points[i].sensor_b = robot_pose.position.y();
+            cloud->points[i].sensor_c = robot_pose.position.z();
 
-        // add the point to the corresponding atlas entry
-        atlas_->at(hash).chunk->points.push_back(cloud->points[i]);
+            // add an entry to atlas if it doesn't yet exist
+            if (!(atlas_->contains(hash))) {
+                atlas_->insert({hash, Chunk(hash, config_.chunk_load_dir)});
+                atlas_->at(hash).loadChunk();
+            }
+
+            // add the point to the corresponding atlas entry
+            atlas_->at(hash).chunk->points.push_back(cloud->points[i]);
+        }
     }
 
-    collection_history_->push(MappingResult(collection_hash, data_hashes));
+    if (add_data) {
+        collection_history_->push(MappingResult(collection_hash, data_hashes));
+    }
+
+    return data_hashes;
 }
 
 void Hylacomylus::dumpMemoryData()

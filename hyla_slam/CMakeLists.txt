@@ -32,6 +32,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(generate_parameter_library REQUIRED)
 
 include_directories(
     include
@@ -73,6 +74,11 @@ target_link_libraries(hylacomylus PUBLIC
     ${PCL_LIBRARIES}
 )
 
+generate_parameter_library(
+    hyla_slam_parameters
+    src/hyla_slam_parameters.yaml
+)
+
 add_executable(hyla_slam_ros_node src/hyla_slam_ros_node.cpp)
 ament_target_dependencies(hyla_slam_ros_node
     rclcpp
@@ -83,7 +89,12 @@ ament_target_dependencies(hyla_slam_ros_node
     pcl_conversions
     std_srvs
 )
-target_link_libraries(hyla_slam_ros_node ${PCL_LIBRARIES} hylacomylus hyla_kiss)
+target_link_libraries(hyla_slam_ros_node 
+    ${PCL_LIBRARIES} 
+    hylacomylus 
+    hyla_kiss
+    hyla_slam_parameters
+)
 
 install(TARGETS
     hyla_slam_ros_node

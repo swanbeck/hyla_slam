@@ -1,0 +1,92 @@
+hyla_slam:
+  
+  sensor_drivers_bridged:
+    type: bool
+    default_value: false
+    description: "Sets QoS settings to make sensor data subscribers function properly. Set to '1' if sensor drivers are being bridged from ROS1 and '2' if they are running in ROS2"
+  active_mapping:
+    type: bool
+    default_value: true
+    description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
+  persist_recent_chunks:
+    type: bool
+    default_value: false
+    description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
+  localization_threshold:
+    type: double
+    default_value: 5.0
+    description: "Distance from last update to localization map robot must cover before the localization map is updated again"
+  mapping_threshold:
+    type: double
+    default_value: 1.0
+    description: "Distance from last update to map robot must cover before new data is added to map"
+  point_cloud_topic:
+    type: string
+    description: "Incoming point cloud topic name"
+  fixed_frame:
+    type: string
+    default_value: "map"
+    description: "Fixed world frame"
+  robot_frame:
+    type: string
+    default_value: "base_link"
+    description: "Robot frame, frame used for localization"
+  odom_frame:
+    type: string
+    default_value: "odom"
+    description: "Fixed odom frame; allows there to be a difference between the fixed world frame of preexisting data and current for data reuse"
+
+  mapping:
+    data_dir:
+      type: string
+      description: "Directory where data will be written to and read from disk"
+    chunk_discretization:
+      type: int
+      default_value: 1
+      description: "Cube side length in meters of chunks used for map discretization (volume of each chunk is chunk_discretization^3 m^3)"
+    half_side_length:
+      type: double
+      default_value: 5.0
+      description: "Half side length in meters of cubic local map surronding robot (volume is (2*half_side_length)^3 m^3)"
+
+  localization:
+    voxel_size:
+      type: double
+      default_value: 0.5
+      description: "Size of voxels maintained by KISS-ICP during localization updates"
+    max_range:
+      type: double
+      default_value: 10.0
+      description: "Maximum distance from origin (WRT input frame) within which points in a scan will be used for localization"
+    min_range:
+      type: double
+      default_value: 1.0
+      description: "Minimum distance from origin (WRT input frame) within which points in a scan will be used for localization"
+    max_points_per_voxel:
+      type: int
+      default_value: 20
+      description: "Maximum number of points that will be maintained in each voxelized region of space within the localization pipeline"
+    min_motion_th:
+      type: double
+      default_value: 0.1
+      description: ""
+    initial_threshold:
+      type: double
+      default_value: 2.0
+      description: ""
+    max_num_iterations:
+      type: int
+      default_value: 500
+      description: "Maximum number of iterations performed in a single localization estimate update"
+    convergence_criterion:
+      type: double
+      default_value: 0.0001
+      description: ""
+    max_num_threads:
+      type: int
+      default_value: 0
+      description: ""
+    deskew:
+      type: bool
+      default_value: false
+      description: ""

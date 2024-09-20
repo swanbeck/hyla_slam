@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <pcl_conversions/pcl_conversions.h>
+#include "pcl_ros/transforms.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -12,12 +13,16 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
-#include "surface_repair_common/utils.hpp"
+// #include "surface_repair_common/utils.hpp"
+#include "hyla_slam/conversion_utils.hpp"
 
 #include "hyla_slam/hyla_kiss.hpp"
 #include "hyla_slam/hylacomylus.hpp"
 #include "hyla_slam/types.hpp"
 #include "hyla_slam/kiss_icp_utils.hpp"
+#include "hyla_slam/utils.hpp"
+
+#include "hyla_slam_parameters.hpp"
 
 namespace hylacomylus {
 
@@ -27,7 +32,7 @@ public:
     RosNode(const rclcpp::NodeOptions &opts);
 
 private:
-    void handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
+    void handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg);
 
     void enableSLAM(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
@@ -36,6 +41,8 @@ private:
     void unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
     double getDisplacement(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2);
+
+    std::optional<sensor_msgs::msg::PointCloud2> transformPointCloud(const sensor_msgs::msg::PointCloud2 &msg, const std::string &frame);
 
 private:
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -69,6 +76,13 @@ private:
     double mapping_update_threshold_;
     std::unique_ptr<Eigen::Vector3d> last_localization_update_point_;
     std::unique_ptr<Eigen::Vector3d> last_mapping_update_point_;
+
+    std::shared_ptr<hyla_slam::ParamListener> param_listener_;
+    hyla_slam::Params params_;
+
+    MappingConfig mapping_config_;
+    KissConfig localization_config_;
+
 
 }; // class RosNode
 
