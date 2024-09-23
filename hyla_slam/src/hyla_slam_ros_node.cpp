@@ -116,7 +116,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 {
     if (!slam_enabled_) { return; }
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Inside handle frame : " << counter_ << ".");
+    RCLCPP_INFO_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "[THROTTLED] Inside handle frame : " << counter_ << ".");
 
     // TODO transform cloud into "localization frame" (like base_link) if it is not already
     auto transformed_msg {RosNode::transformPointCloud(*raw_msg, params_.robot_frame)};
@@ -134,7 +134,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
     auto pose_prior = localizer_->pose();
     if (last_localization_update_point_ == nullptr || 
         (last_localization_update_point_ != nullptr &&
-        getDisplacement(pose_prior.translation(), *last_localization_update_point_) > localization_reference_threshold_)
+        getDisplacement(pose_prior.translation(), *last_localization_update_point_) > params_.localization_threshold)
     ) {
         auto map {mapper_->map()};
         RCLCPP_INFO_STREAM(this->get_logger(), "Setting map in localizer (map has " << map->points.size() << " points).");
@@ -146,7 +146,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 
             last_localization_update_point_ = std::make_unique<Eigen::Vector3d>(pose_prior.translation());
 
-            // map_msg->header.frame_id = fixed_frame_;
+            // map_msg->header.frame_id = params_.fixed_frame;
             // reference_publisher_->publish(*map_msg);
         }
     }
@@ -161,7 +161,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
     // update mapping
     if (last_mapping_update_point_ == nullptr || 
         (last_mapping_update_point_ != nullptr &&
-        getDisplacement(pose_estimate.translation(), *last_mapping_update_point_) > mapping_update_threshold_)
+        getDisplacement(pose_estimate.translation(), *last_mapping_update_point_) > params_.mapping_threshold)
     ) {
         // use localization to update transform for cloud
         PointCloud::Ptr estimated_point_cloud (new PointCloud);
@@ -181,7 +181,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
         // if (map->points.size() > 0) {
         //     sensor_msgs::msg::PointCloud2 map_msg;
         //     pcl::toROSMsg(*map, map_msg);
-        //     map_msg.header.frame_id = fixed_frame_;
+        //     map_msg.header.frame_id = params_.fixed_frame;
         //     frame_publisher_->publish(map_msg);
         // }
     }

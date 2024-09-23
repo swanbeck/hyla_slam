@@ -72,8 +72,6 @@ private:
 
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> unload_data_server_;
 
-    double localization_reference_threshold_;
-    double mapping_update_threshold_;
     std::unique_ptr<Eigen::Vector3d> last_localization_update_point_;
     std::unique_ptr<Eigen::Vector3d> last_mapping_update_point_;
 
