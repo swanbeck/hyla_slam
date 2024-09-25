@@ -4,6 +4,9 @@
 #include <sophus/se3.hpp>
 #include <tuple>
 #include <vector>
+#include <chrono>
+// #include <iostream>
+#include <optional>
 
 #include "kiss_icp/core/Deskew.hpp"
 #include "kiss_icp/core/Preprocessing.hpp"
@@ -59,6 +62,8 @@ public:
     const Sophus::SE3d &delta() const { return last_delta_; }
     Sophus::SE3d &delta() { return last_delta_; }
 
+    Eigen::Matrix4d extrapolateTransform(const Eigen::Matrix4d &T_initial, double delta_t_initial, double delta_t_new);
+
 private:
     Sophus::SE3d last_pose_;
     Sophus::SE3d last_delta_;
@@ -67,6 +72,10 @@ private:
     kiss_icp::Registration registration_;
     kiss_icp::VoxelHashMap local_map_;
     kiss_icp::AdaptiveThreshold adaptive_threshold_;
+
+    std::unique_ptr<std::chrono::time_point<std::chrono::steady_clock>> previous_t_;
+    std::unique_ptr<std::chrono::duration<double>> previous_dt_;
+
 
 }; // class HylaKiss
 
