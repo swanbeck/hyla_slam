@@ -5,7 +5,6 @@
 #include <tuple>
 #include <vector>
 #include <chrono>
-// #include <iostream>
 #include <optional>
 
 #include "kiss_icp/core/Deskew.hpp"
@@ -62,7 +61,7 @@ public:
     const Sophus::SE3d &delta() const { return last_delta_; }
     Sophus::SE3d &delta() { return last_delta_; }
 
-    Eigen::Matrix4d extrapolateTransform(const Eigen::Matrix4d &T_initial, double delta_t_initial, double delta_t_new);
+    Sophus::SE3d extrapolateTransform(const Sophus::SE3d &T_initial, double delta_t_initial, double delta_t_new);
 
 private:
     Sophus::SE3d last_pose_;
