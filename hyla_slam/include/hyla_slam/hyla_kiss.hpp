@@ -50,6 +50,8 @@ public:
 
     void setMap(const std::vector<Eigen::Vector3d> &map);
 
+    void setPose(const Sophus::SE3d &pose);
+
     std::vector<Eigen::Vector3d> localMap() const { return local_map_.Pointcloud(); };
 
     const kiss_icp::VoxelHashMap &voxelMap() const { return local_map_; };

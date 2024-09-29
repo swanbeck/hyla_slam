@@ -18,13 +18,12 @@
     <depend>pcl_conversions</depend>
     <depend>std_srvs</depend>
     <depend>generate_parameter_library</depend>
+    <depend>hyla_slam_interfaces</depend>
 
     <depend>eigen</depend>
     <depend>sophus</depend>
     <depend>tbb</depend>
     <depend>robin-map-dev</depend>
-
-    <exec_depend>ros2launch</exec_depend>
 
     <export>
         <build_type>ament_cmake</build_type>

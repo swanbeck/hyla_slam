@@ -68,14 +68,20 @@ void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
 {
     // convert to VoxelHashMap and set to class variable
     const auto &[source, frame_downsample] = voxelize(map);
-
     local_map_.Clear();
-
     local_map_.Update(frame_downsample, last_pose_.translation());
 
     // TODO add in adpative threshold update here to make more robust to large changes that may be introduced when localization_map is added? 
     // adaptive_threshold_.UpdateModelDeviation();
     // or maybe it just makes sense to reset it altogether?
+    adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
+}
+
+void HylaKiss::setPose(const Sophus::SE3d &pose)
+{
+    Sophus::SE3d last_pose_ = pose;
+    // TODO should last_delta be updated as well?
+    // Sophus::Se3d last_delta_ = ;
     adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
 }
 

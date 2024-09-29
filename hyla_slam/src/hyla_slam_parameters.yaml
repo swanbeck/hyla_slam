@@ -3,7 +3,7 @@ hyla_slam:
   sensor_drivers_bridged:
     type: bool
     default_value: false
-    description: "Sets QoS settings to make sensor data subscribers function properly. Set to '1' if sensor drivers are being bridged from ROS1 and '2' if they are running in ROS2"
+    description: "Sets QoS settings to make sensor data subscribers function properly when data is bridged. Set to '1' if sensor drivers are being bridged from ROS1 and '2' if they are running in ROS2"
   active_mapping:
     type: bool
     default_value: true

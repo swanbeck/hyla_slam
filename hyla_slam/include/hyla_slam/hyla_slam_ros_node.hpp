@@ -49,9 +49,6 @@ private:
     std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-    std::shared_ptr<rclcpp::TimerBase> odom_timer_;
-    std::shared_ptr<rclcpp::TimerBase> map_timer_;
-
     std::unique_ptr<HylaKiss> localizer_;
     std::unique_ptr<Hylacomylus> mapper_;
 

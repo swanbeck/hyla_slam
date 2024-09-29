@@ -50,4 +50,30 @@ geometry_msgs::msg::Transform transformationMatrix2Transform(const Eigen::Matrix
     return transform;
 }
 
+Eigen::Matrix4d transform2TransformationMatrix (const geometry_msgs::msg::Transform transform) {
+    Eigen::Quaterniond q;
+    q.w() = transform.rotation.w;
+    q.x() = transform.rotation.x;
+    q.y() = transform.rotation.y;
+    q.z() = transform.rotation.z;
+    Eigen::Matrix3d R = q.normalized().toRotationMatrix();
+
+    Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+    for (std::size_t i = 0; i < 3; i++) {
+        for (std::size_t j = 0; j < 3; j++) {
+            T(i, j) = R(i, j);
+        }
+    }
+
+    T(0,3) = transform.translation.x;
+    T(1,3) = transform.translation.y;
+    T(2,3) = transform.translation.z;
+
+    return T;
+}
+
+Eigen::Matrix4d transformStamped2TransformationMatrix (const geometry_msgs::msg::TransformStamped transform) {
+    return transform2TransformationMatrix(transform.transform);
+}
+
 } // namespace conversion_utils

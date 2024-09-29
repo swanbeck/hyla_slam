@@ -123,6 +123,7 @@ void RosNode::handleNewFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr
 
     if (!transformed_msg.has_value()) {
         RCLCPP_ERROR(this->get_logger(), "Could not transform cloud into robot frame! No SLAM update performed.");
+        return;
     }
 
     sensor_msgs::msg::PointCloud2::ConstSharedPtr msg(std::make_shared<sensor_msgs::msg::PointCloud2>(transformed_msg.value()));  
