@@ -1,4 +1,4 @@
-#include "hyla_slam/hyla_slam_ros_node.hpp"
+#include "hyla_slam_ros_node.hpp"
 
 namespace hylacomylus {
 

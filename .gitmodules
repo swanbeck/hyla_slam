@@ -1,5 +1,5 @@
 [submodule "hyla_slam/include/hyla_slam/surface_repair_common"]
-	path = hyla_slam/include/hyla_slam/surface_repair_common
+	path = hyla_slam/hylacomylus/surface_repair_common
 	url = https://github.com/UTNuclearRobotics/surface_repair_common.git
 [submodule "kiss-icp"]
 	path = kiss-icp

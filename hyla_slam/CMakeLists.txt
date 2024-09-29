@@ -35,52 +35,39 @@ find_package(std_srvs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(hyla_slam_interfaces REQUIRED)
 
-include_directories(
-    include
-    ${PCL_INCLUDE_DIRS}
-)
-
-link_directories(
-    ${PCL_LIBRARY_DIRS}
-)
-
-add_definitions(
-    ${PCL_DEFINITIONS}
-)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # hyla_kiss
 add_library(hyla_kiss STATIC
-    include/hyla_slam/hyla_kiss.hpp
-    src/hyla_kiss.cpp
+    hyla_kiss/hyla_kiss.hpp
+    hyla_kiss/hyla_kiss.cpp
+    hyla_kiss/kiss_icp_utils.hpp
 )
 add_dependencies(hyla_kiss kiss_icp_core)
-target_include_directories(hyla_kiss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(hyla_kiss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(hyla_kiss PUBLIC kiss_icp_core)
-
-# utils
-add_library(utils STATIC
-    include/hyla_slam/utils.hpp
-    src/utils.cpp
-)
-target_include_directories(utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # hylacomylus
 add_library(hylacomylus STATIC
-    include/hyla_slam/hylacomylus.hpp
-    src/hylacomylus.cpp
+    hylacomylus/hylacomylus.hpp
+    hylacomylus/hylacomylus.cpp
+    hylacomylus/chunk.hpp
+    hylacomylus/hasher.hpp
+    hylacomylus/types.hpp
+    hylacomylus/utils.hpp
+    hylacomylus/utils.cpp
 )
-target_include_directories(hylacomylus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(hylacomylus PUBLIC
-    utils
-    ${PCL_LIBRARIES}
-)
+target_include_directories(hylacomylus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES})
 
 generate_parameter_library(
     hyla_slam_parameters
-    src/hyla_slam_parameters.yaml
+    ros/hyla_slam_parameters.yaml
 )
 
-add_executable(hyla_slam_ros_node src/hyla_slam_ros_node.cpp)
+add_executable(hyla_slam_ros_node ros/hyla_slam_ros_node.cpp)
 ament_target_dependencies(hyla_slam_ros_node
     rclcpp
     geometry_msgs
@@ -97,7 +84,7 @@ target_link_libraries(hyla_slam_ros_node
     hyla_slam_parameters
 )
 
-add_executable(hyla_slam_behaviors_node src/hyla_slam_behaviors_node.cpp)
+add_executable(hyla_slam_behaviors_node ros/hyla_slam_behaviors_node.cpp)
 ament_target_dependencies(hyla_slam_behaviors_node
     rclcpp
     geometry_msgs

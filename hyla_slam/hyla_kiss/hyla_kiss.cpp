@@ -1,4 +1,4 @@
-#include "hyla_slam/hyla_kiss.hpp"
+#include "hyla_kiss.hpp"
 
 namespace hylacomylus {
 
