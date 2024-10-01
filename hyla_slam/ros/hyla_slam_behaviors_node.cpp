@@ -119,6 +119,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     );
 
     startExecutors();
+    RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
 
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)
@@ -200,7 +201,7 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     sensor_msgs::msg::PointCloud2 msg;
     pcl::toROSMsg(*(mapper_->map()), msg);
     msg.header.frame_id = params_.fixed_frame;
-    // response->map = msg;
+    response->map = msg;
 }
 
 void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response)
@@ -283,33 +284,43 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
 
 void BehaviorsNode::enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+    std::string msg {};
     if (localization_enabled_ == true) {
-        RCLCPP_WARN(this->get_logger(), "Localization already enabled!");
+        msg = "Localization already enabled!";
+        RCLCPP_WARN(this->get_logger(), msg.c_str());
     } else {
-        RCLCPP_INFO(this->get_logger(), "Localization enabled!");
+        msg = "Localization enabled!";
+        RCLCPP_INFO(this->get_logger(), msg.c_str());
     }
     localization_enabled_ = true;
     response->success = true;
+    response->message = msg;
 }
 
 void BehaviorsNode::disableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+    std::string msg {};
     if (localization_enabled_ == false) {
-        RCLCPP_WARN(this->get_logger(), "Localization already disabled.");
+        msg = "Localization already disabled.";
+        RCLCPP_WARN(this->get_logger(), msg.c_str());
     } else {
-        RCLCPP_INFO(this->get_logger(), "Localization disabled.");
+        msg = "Localization disabled.";
+        RCLCPP_INFO(this->get_logger(), msg.c_str());
     }
     localization_enabled_ = false;
     response->success = true;
+    response->message = msg;
 }
 
 void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     mapper_->dumpMemoryData();
-    RCLCPP_INFO(this->get_logger(), "Unloaded data in memory to disk!");
+    std::string msg {"Unloaded data in memory to disk!"};
+    RCLCPP_INFO(this->get_logger(), msg.c_str());
     localization_reference_pose_ = nullptr;
     mapping_reference_pose_ = nullptr;
     response->success = true;
+    response->message = msg;
 }
 
 std::optional<sensor_msgs::msg::PointCloud2> BehaviorsNode::transformPointCloud(const sensor_msgs::msg::PointCloud2 &msg, const std::string &frame)
@@ -335,6 +346,7 @@ int main(int argc, char** argv)
 
     auto node {std::make_shared<hylacomylus::BehaviorsNode>(rclcpp::NodeOptions())};
     rclcpp::spin(node);
+
     rclcpp::shutdown();
     
     return 0;

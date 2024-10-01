@@ -5,6 +5,7 @@ namespace hylacomylus {
 RosNode::RosNode(const rclcpp::NodeOptions &opts)
 : rclcpp::Node("hyla_slam", opts), counter_(0), slam_enabled_(false)
 {
+    RCLCPP_INFO(this->get_logger(), "HERE");
     pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS); // prevent warnings from pcl::conversions being printed constantly
 
     // handle parameters

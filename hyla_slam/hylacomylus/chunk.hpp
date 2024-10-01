@@ -65,6 +65,7 @@ struct Chunk {
         chunk->height = 1;
         chunk->width = chunk->points.size();
         pcl::io::savePCDFileBinary(Chunk::getFileAddress(), *chunk);
+        chunk = std::make_shared<PointCloud>();
         loaded = false;
     }
 }; // struct Chunk
