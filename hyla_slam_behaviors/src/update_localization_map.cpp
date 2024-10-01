@@ -14,7 +14,7 @@ BT::PortsList UpdateLocalizationMap::providedPorts()
 BT::NodeStatus UpdateLocalizationMap::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("update_localization_map");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/update_localization_map");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

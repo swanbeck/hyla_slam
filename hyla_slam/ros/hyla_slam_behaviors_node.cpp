@@ -60,25 +60,25 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
     // services for behaviors
     enable_localization_server_ = this->create_service<std_srvs::srv::Trigger>(
-        "enable_localization",
+        "~/enable_localization",
         std::bind(&BehaviorsNode::enableLocalization, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     disable_localization_server_ = this->create_service<std_srvs::srv::Trigger>(
-        "disable_localization",
+        "~/disable_localization",
         std::bind(&BehaviorsNode::disableLocalization, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     unload_data_server_ = this->create_service<std_srvs::srv::Trigger>(
-        "unload_data",
+        "~/unload_data",
         std::bind(&BehaviorsNode::unloadData, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     get_localization_displacement_server_ = this->create_service<hyla_slam_interfaces::srv::GetDisplacement>(
-        "get_localization_displacement",
+        "~/get_localization_displacement",
         [this](const std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response) {
             getDisplacement(Capability::LOCALIZATION, response);
         },
@@ -86,7 +86,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         service_cb_group_
     );
     get_mapping_displacement_server_ = this->create_service<hyla_slam_interfaces::srv::GetDisplacement>(
-        "get_mapping_displacement",
+        "~/get_mapping_displacement",
         [this](const std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response) {
             getDisplacement(Capability::MAPPING, response);
         },
@@ -94,25 +94,25 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         service_cb_group_
     );
     get_map_server_ = this->create_service<hyla_slam_interfaces::srv::GetMap>(
-        "get_map",
+        "~/get_map",
         std::bind(&BehaviorsNode::getMap, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     index_data_server_ = this->create_service<hyla_slam_interfaces::srv::IndexData>(
-        "index_data",
+        "~/index_data",
         std::bind(&BehaviorsNode::indexData, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     update_localization_map_server_ = this->create_service<std_srvs::srv::Trigger>(
-        "update_localization_map",
+        "~/update_localization_map",
         std::bind(&BehaviorsNode::updateLocalizationMap, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
     set_localization_estimate_server_ = this->create_service<hyla_slam_interfaces::srv::SetPose>(
-        "set_localization_estimate",
+        "~/set_localization_estimate",
         std::bind(&BehaviorsNode::setLocalizationEstimate, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_

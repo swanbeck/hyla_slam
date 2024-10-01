@@ -23,7 +23,7 @@ BT::NodeStatus GetLocalizationDisplacement::onStart()
     angular_target_ = angular_target_option.value();
 
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("get_localization_displacement");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/get_localization_displacement");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

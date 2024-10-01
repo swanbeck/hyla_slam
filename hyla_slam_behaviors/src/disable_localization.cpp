@@ -14,7 +14,7 @@ BT::PortsList DisableLocalization::providedPorts()
 BT::NodeStatus DisableLocalization::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("disable_localization");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/disable_localization");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

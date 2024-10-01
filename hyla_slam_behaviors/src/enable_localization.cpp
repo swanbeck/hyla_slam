@@ -14,7 +14,7 @@ BT::PortsList EnableLocalization::providedPorts()
 BT::NodeStatus EnableLocalization::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("enable_localization");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/enable_localization");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

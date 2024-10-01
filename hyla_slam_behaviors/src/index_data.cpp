@@ -22,7 +22,7 @@ BT::NodeStatus IndexData::onStart()
     auto cloud = cloud_option.value();
 
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("index_data");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/index_data");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

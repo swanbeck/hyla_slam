@@ -20,7 +20,7 @@ BT::NodeStatus SetLocalizationEstimate::onStart()
     auto pose = pose_option.value();
 
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("set_localization_estimate");
+    service_client_ = node_->create_client<Trigger>("hyla_slam/set_localization_estimate");
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);
