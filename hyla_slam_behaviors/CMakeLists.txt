@@ -14,6 +14,7 @@ find_package(behaviortree_cpp REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(hyla_slam_interfaces REQUIRED)
 
 include_directories(
   include
@@ -25,12 +26,19 @@ set(BEHAVIOR_TREE_DEPS
   std_srvs
   geometry_msgs
   sensor_msgs
+  hyla_slam_interfaces
 )
 
 add_library(hyla_slam_behaviors STATIC
   src/disable_localization.cpp
   src/enable_localization.cpp
+  src/get_localization_displacement.cpp
+  src/get_map.cpp
+  src/get_mapping_displacement.cpp
+  src/index_data.cpp
+  src/set_localization_estimate.cpp
   src/unload_data.cpp
+  src/update_localization_map.cpp
 )
 ament_target_dependencies(hyla_slam_behaviors ${BEHAVIOR_TREE_DEPS})
 

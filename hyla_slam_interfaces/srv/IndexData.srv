@@ -1,4 +1,4 @@
 bool lookup_transform true
-geometry_msgs/TransformStamped tf
+geometry_msgs/TransformStamped transform
 sensor_msgs/PointCloud2 cloud
 ---

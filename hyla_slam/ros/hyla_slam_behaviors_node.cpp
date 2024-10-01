@@ -124,7 +124,10 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)
 {
-    Sophus::SE3d pose(conversion_utils::pose2TransformationMatrix(request->pose));
+    if (!(request->pose.header.frame_id == params_.fixed_frame)) {
+        RCLCPP_WARN_STREAM(this->get_logger(), "Provided pose frame id (" << request->pose.header.frame_id << ") does match set fixed frame (" << params_.fixed_frame << "). Ignoring request...");
+    }
+    Sophus::SE3d pose(conversion_utils::pose2TransformationMatrix(request->pose.pose));
     {
         std::unique_lock<std::shared_mutex> lock(mutex_);
         localizer_->setPose(pose);
@@ -166,6 +169,8 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
     }
 
     response->success = true;
+    response->message = "Localization map updated!";
+    RCLCPP_INFO(this->get_logger(), "Localization map updated!");
 }
 
 void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response)
@@ -185,7 +190,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     pcl::fromROSMsg(request->cloud, *input_point_cloud);
     
     PointCloud::Ptr transformed_point_cloud (new PointCloud);
-    Eigen::Matrix4d tf = request->lookup_transform ? current_pose_estimate.matrix() : conversion_utils::transformStamped2TransformationMatrix(request->tf);
+    Eigen::Matrix4d tf = request->lookup_transform ? current_pose_estimate.matrix() : conversion_utils::transformStamped2TransformationMatrix(request->transform);
     pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, tf);
 
     // index data in mapper
@@ -193,6 +198,8 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     
     // update mapping reference pose
     mapping_reference_pose_ = std::make_unique<Sophus::SE3d>(tf);
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Data indexed to existing map! Updated map has " << mapper_->map()->points.size() << " points.");
 }
 
 void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
@@ -202,6 +209,7 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     pcl::toROSMsg(*(mapper_->map()), msg);
     msg.header.frame_id = params_.fixed_frame;
     response->map = msg;
+    RCLCPP_INFO_STREAM(this->get_logger(), "Returning map of size " << mapper_->map()->size() << ".");
 }
 
 void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response)
