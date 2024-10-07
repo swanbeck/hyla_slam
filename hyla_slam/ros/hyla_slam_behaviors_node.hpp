@@ -18,7 +18,6 @@
 #include "hylacomylus/types.hpp"
 #include "hylacomylus/utils.hpp"
 
-#include "conversion_utils.hpp"
 #include "hyla_slam_parameters.hpp"
 
 #include <std_srvs/srv/trigger.hpp>
@@ -27,7 +26,7 @@
 #include "hyla_slam_interfaces/srv/index_data.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
-namespace hylacomylus {
+namespace hyla_slam {
 
 class BehaviorsNode : public rclcpp::Node
 {
@@ -95,14 +94,14 @@ private:
     std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-    std::unique_ptr<HylaKiss> localizer_;
-    std::unique_ptr<Hylacomylus> mapper_;
+    std::unique_ptr<hylacomylus::Hylacomylus> mapper_;
+    std::unique_ptr<hyla_kiss::HylaKiss> localizer_;
 
     std::shared_ptr<hyla_slam::ParamListener> param_listener_;
     hyla_slam::Params params_;
 
-    MappingConfig mapping_config_;
-    KissConfig localization_config_;
+    hylacomylus::MappingConfig mapping_config_;
+    hyla_kiss::KissConfig localization_config_;
 
     bool localization_enabled_;
 
@@ -126,4 +125,4 @@ private:
 
 }; // class BehaviorsNode
 
-} // namespace hylacomylus
+} // namespace hyla_slam

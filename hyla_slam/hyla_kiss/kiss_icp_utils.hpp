@@ -34,6 +34,7 @@
 
 // ROS 2
 #include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/logger.hpp>
@@ -78,6 +79,13 @@ inline Sophus::SE3d transformToSophus(const geometry_msgs::msg::TransformStamped
     return Sophus::SE3d(
         Sophus::SE3d::QuaternionType(t.rotation.w, t.rotation.x, t.rotation.y, t.rotation.z),
         Sophus::SE3d::Point(t.translation.x, t.translation.y, t.translation.z));
+}
+
+inline Sophus::SE3d poseToSophus(const geometry_msgs::msg::PoseStamped &pose) {
+    const auto &p = pose.pose;
+    return Sophus::SE3d(
+        Sophus::SE3d::QuaternionType(p.orientation.w, p.orientation.x, p.orientation.y, p.orientation.z),
+        Sophus::SE3d::Point(p.position.x, p.position.y, p.position.z));
 }
 }  // namespace tf2
 

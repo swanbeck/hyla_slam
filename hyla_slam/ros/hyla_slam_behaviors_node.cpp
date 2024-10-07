@@ -1,6 +1,6 @@
 #include "hyla_slam_behaviors_node.hpp"
 
-namespace hylacomylus {
+namespace hyla_slam {
 
 BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 : rclcpp::Node("hyla_slam", opts), localization_enabled_(false)
@@ -21,7 +21,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.half_side_length = mapping_params.half_side_length;
     mapping_config_.active_mapping = params_.active_mapping;
     mapping_config_.persist_recent_chunks = params_.persist_recent_chunks;
-    mapper_ = std::make_unique<Hylacomylus>(mapping_config_);
+    mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
     localization_config_.voxel_size = localization_params.voxel_size;
@@ -34,7 +34,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     localization_config_.convergence_criterion = localization_params.convergence_criterion;
     localization_config_.max_num_threads = localization_params.max_num_threads;
     localization_config_.deskew = localization_params.deskew;
-    localizer_ = std::make_unique<HylaKiss>(localization_config_);
+    localizer_ = std::make_unique<hyla_kiss::HylaKiss>(localization_config_);
 
     // create ROS stuff
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -122,10 +122,9 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
 
-// DONE
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)
 {
-    geometry_msgs::msg::Pose map_robot_estimate;
+    geometry_msgs::msg::PoseStamped map_robot_estimate;
     if (request->identity == true) {
         RCLCPP_WARN_STREAM(this->get_logger(), "Request to set localization estimate recieved with identity field set true! Using identity transform for update.");
     }
@@ -133,11 +132,9 @@ void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_inte
         RCLCPP_WARN_STREAM(this->get_logger(), "Provided pose frame id (" << request->pose.header.frame_id << ") does match set fixed frame (" << params_.fixed_frame << "). Ignoring request...");
         return;
     } else {
-        map_robot_estimate = request->pose.pose;
+        map_robot_estimate = request->pose;
     }
 
-    // convert pose to frame of LiDAR sensor
-    
     // lookup transform between LiDAR sensor frame and robot frame
     geometry_msgs::msg::TransformStamped robot_lidar_transform;
     try {
@@ -152,7 +149,7 @@ void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_inte
     }
 
     // convert to sophus poses
-    Sophus::SE3d map_robot_pose(conversion_utils::pose2TransformationMatrix(map_robot_estimate));
+    Sophus::SE3d map_robot_pose {tf2::poseToSophus(map_robot_estimate)};
     Sophus::SE3d robot_lidar_pose(tf2::transformToSophus(robot_lidar_transform));
 
     // compute transform and set in localizer
@@ -173,7 +170,7 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
         map_lidar_estimate = localizer_->pose();
     }
 
-    PointCloud::Ptr dummy_cloud (new PointCloud);
+    hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
     mapper_->update(dummy_cloud, map_lidar_estimate);
 
     // get map from mapper
@@ -205,7 +202,6 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
     RCLCPP_INFO(this->get_logger(), msg.c_str());
 }
 
-// TODO make this use both local and global transforms
 void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response)
 {
     // get current pose
@@ -216,12 +212,29 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     }
 
     // transform cloud (using request transform if provided)
-    PointCloud::Ptr input_point_cloud (new PointCloud);
+    hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
     pcl::fromROSMsg(request->cloud, *input_point_cloud);
     
-    PointCloud::Ptr transformed_point_cloud (new PointCloud);
-    
-    Sophus::SE3d transform {request->lookup_transform ? map_lidar_estimate : tf2::transformToSophus(request->global_transform) * tf2::transformToSophus(request->local_transform)};
+    hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
+
+    // transform the cloud into the fixed frame (using the service transforms, if provided)
+    Sophus::SE3d transform;
+    if (request->lookup_transform == true) {
+        geometry_msgs::msg::TransformStamped robot_lidar_transform;
+        try {
+            robot_lidar_transform = tf_buffer_->lookupTransform(
+                request->cloud.header.frame_id,
+                params_.fixed_frame,
+                tf2::TimePointZero
+            );
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_WARN(this->get_logger(), "Could not transform %s to %s: %s", params_.localization_frame.c_str(), params_.robot_frame.c_str(), ex.what());
+            return;
+        }
+        transform = tf2::transformToSophus(robot_lidar_transform);
+    } else {
+        transform = tf2::transformToSophus(request->global_transform).inverse() * tf2::transformToSophus(request->local_transform).inverse();
+    }
 
     pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, transform.matrix());
 
@@ -234,7 +247,6 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     RCLCPP_INFO_STREAM(this->get_logger(), "Data indexed to existing map! Updated map has " << mapper_->map()->points.size() << " points.");
 }
 
-// DONE
 void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
 {
     // convert map to PC2 and return
@@ -245,7 +257,6 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     RCLCPP_INFO_STREAM(this->get_logger(), "Returning map of size " << mapper_->map()->size() << ".");
 }
 
-// DONE
 void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response)
 {
     // get reference pose
@@ -283,7 +294,6 @@ void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr
     response->angular = axis_angle.angle();
 }
 
-// DONE
 void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg)
 {
     // check to make sure data is expressed in the proper frame
@@ -313,15 +323,6 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
         pose_estimate = localizer_->pose();
     }
 
-    // DEBUG publish a transform for the pose estimate for debugging
-    auto tf {tf2::sophusToTransform(pose_estimate)};
-    geometry_msgs::msg::TransformStamped tf_stamped;
-    tf_stamped.transform = tf;
-    // tf_stamped.child_frame_id = params_.robot_frame;
-    tf_stamped.child_frame_id = "test_lidar_frame";
-    tf_stamped.header.frame_id = params_.fixed_frame;
-    tf_broadcaster_->sendTransform(tf_stamped);
-
     // lookup transform between sensor frame and robot
     geometry_msgs::msg::TransformStamped robot_lidar_transform;
     try {
@@ -344,10 +345,10 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
     map_robot_tf.transform = tf2::sophusToTransform(map_robot_pose);
     map_robot_tf.header.frame_id = params_.fixed_frame;
     map_robot_tf.child_frame_id = params_.robot_frame;
+    map_robot_tf.header.stamp = raw_msg->header.stamp;
     tf_broadcaster_->sendTransform(map_robot_tf);
 }
 
-// DONE
 void BehaviorsNode::enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     std::string msg {};
@@ -363,7 +364,6 @@ void BehaviorsNode::enableLocalization(const std::shared_ptr<std_srvs::srv::Trig
     response->message = msg;
 }
 
-// DONE
 void BehaviorsNode::disableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     std::string msg {};
@@ -379,7 +379,6 @@ void BehaviorsNode::disableLocalization(const std::shared_ptr<std_srvs::srv::Tri
     response->message = msg;
 }
 
-// DONE
 void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     mapper_->dumpMemoryData();
@@ -391,13 +390,13 @@ void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Req
     response->message = msg;
 }
 
-} // namespace hylacomylus
+} // namespace hyla_slam
 
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-    auto node {std::make_shared<hylacomylus::BehaviorsNode>(rclcpp::NodeOptions())};
+    auto node {std::make_shared<hyla_slam::BehaviorsNode>(rclcpp::NodeOptions())};
     rclcpp::spin(node);
 
     rclcpp::shutdown();

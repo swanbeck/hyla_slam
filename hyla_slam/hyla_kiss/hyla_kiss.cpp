@@ -1,6 +1,6 @@
 #include "hyla_kiss.hpp"
 
-namespace hylacomylus {
+namespace hyla_kiss {
 
 HylaKiss::HylaKiss(const KissConfig &config)
     : config_(config),
@@ -104,4 +104,4 @@ Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, doubl
     return T_new;
 }
 
-} // namespace hylacomylus
+} // namespace hyla_kiss

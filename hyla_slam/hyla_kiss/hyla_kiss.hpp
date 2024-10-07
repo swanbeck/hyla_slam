@@ -14,7 +14,7 @@
 #include "kiss_icp/core/Threshold.hpp"
 #include "kiss_icp/core/VoxelHashMap.hpp"
 
-namespace hylacomylus {
+namespace hyla_kiss {
 
 struct KissConfig {
     // map params
@@ -81,4 +81,4 @@ private:
 
 }; // class HylaKiss
 
-} // namespace hylacomylus
+} // namespace hyla_kiss
