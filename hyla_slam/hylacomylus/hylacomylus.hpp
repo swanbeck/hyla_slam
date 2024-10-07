@@ -16,6 +16,8 @@
 // #include <pcl_conversions/pcl_conversions.h>
 
 #include <Eigen/Dense>
+#include <sophus/se3.hpp>
+#include <sophus/so3.hpp>
 
 #include "surface_repair_common/point_type.h"
 // #include "surface_repair_common/utils.hpp"
@@ -36,7 +38,7 @@ public:
 
     ~Hylacomylus();
 
-    void update(PointCloud::Ptr &cloud, const Pose3D &robot_pose);
+    void update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose);
 
     void dumpMemoryData();
 
@@ -45,13 +47,13 @@ public:
 private:
     std::uint32_t generateTimeHash();
 
-    std::set<std::uint64_t> findLocalHashes(const Pose3D &robot_pose, const float &half_side_length);
+    std::set<std::uint64_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
 
     void rescopeStorage(const std::set<std::uint64_t> &hashes);
 
-    void updateLocalMap(const Pose3D &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
+    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
     
-    std::set<std::uint64_t> indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose, const bool &add_data);
+    std::set<std::uint64_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data);
 
     void composeLocalMap(const std::set<std::uint64_t> &hashes);
 

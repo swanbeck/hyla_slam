@@ -1,2 +1,3 @@
+bool identity false
 geometry_msgs/PoseStamped pose
 ---

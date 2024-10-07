@@ -52,8 +52,6 @@ private:
     void updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>);
 
-    std::optional<sensor_msgs::msg::PointCloud2> transformPointCloud(const sensor_msgs::msg::PointCloud2 &msg, const std::string &frame);
-
     void startExecutors()
     {
         localization_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();

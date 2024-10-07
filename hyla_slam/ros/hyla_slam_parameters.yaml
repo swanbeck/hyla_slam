@@ -30,7 +30,11 @@ hyla_slam:
   robot_frame:
     type: string
     default_value: "base_link"
-    description: "Robot frame, frame used for localization"
+    description: "Robot frame, transforms are broadcasted for this frame, so it should be the parent link of your robot"
+  localization_frame:
+    type: string
+    default_value: "os_lidar"
+    description: "Sensor data frame; incoming LiDAR data is expected to be expressed in this frame and its transform to robot_frame is expected to be available"
   odom_frame:
     type: string
     default_value: "odom"

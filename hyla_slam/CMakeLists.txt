@@ -35,6 +35,14 @@ find_package(std_srvs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(hyla_slam_interfaces REQUIRED)
 
+include(FetchContent)
+set(SOPHUS_USE_BASIC_LOGGING ON CACHE BOOL "Don't use fmt for Sophus library")
+set(BUILD_SOPHUS_TESTS OFF CACHE BOOL "Don't build Sophus tests")
+set(BUILD_SOPHUS_EXAMPLES OFF CACHE BOOL "Don't build Sophus Examples")
+FetchContent_Declare(sophus SYSTEM URL https://github.com/strasdat/Sophus/archive/refs/tags/1.22.10.tar.gz
+                     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_LIST_DIR}/sophus.patch UPDATE_DISCONNECTED 1)
+FetchContent_MakeAvailable(sophus)
+
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -60,28 +68,11 @@ add_library(hylacomylus STATIC
     hylacomylus/utils.cpp
 )
 target_include_directories(hylacomylus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES})
+target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES} sophus)
 
 generate_parameter_library(
     hyla_slam_parameters
     ros/hyla_slam_parameters.yaml
-)
-
-add_executable(hyla_slam_ros_node ros/hyla_slam_ros_node.cpp)
-ament_target_dependencies(hyla_slam_ros_node
-    rclcpp
-    geometry_msgs
-    sensor_msgs
-    tf2_ros
-    pcl_ros
-    pcl_conversions
-    std_srvs
-)
-target_link_libraries(hyla_slam_ros_node 
-    ${PCL_LIBRARIES} 
-    hylacomylus 
-    hyla_kiss
-    hyla_slam_parameters
 )
 
 add_executable(hyla_slam_behaviors_node ros/hyla_slam_behaviors_node.cpp)
@@ -103,7 +94,6 @@ target_link_libraries(hyla_slam_behaviors_node
 )
 
 install(TARGETS
-    hyla_slam_ros_node
     hyla_slam_behaviors_node
     DESTINATION lib/${PROJECT_NAME}
 )

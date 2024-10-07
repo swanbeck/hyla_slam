@@ -6,12 +6,6 @@
 
 namespace hylacomylus {
 
-struct Pose3D 
-{
-    Eigen::Vector3d position;
-    Eigen::Quaterniond orientation;
-}; // struct Pose3D
-
 struct MappingConfig
 {
     std::string fixed_frame;

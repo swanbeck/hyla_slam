@@ -9,7 +9,7 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     hasher_ = std::make_unique<ChunkHasher>(config_.chunk_discretization);
     collection_history_ = std::make_unique<std::stack<MappingResult>>();
 
-    updateLocalMap(Pose3D());
+    updateLocalMap(Sophus::SE3d());
 }
 
 Hylacomylus::~Hylacomylus()
@@ -24,13 +24,13 @@ std::uint32_t Hylacomylus::generateTimeHash()
     return std::chrono::duration_cast<std::chrono::seconds>(durationSinceEpoch).count();
 }
 
-std::set<std::uint64_t> Hylacomylus::findLocalHashes(const Pose3D &robot_pose, const float &half_side_length)
+std::set<std::uint64_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length)
 {
     std::set<std::uint64_t> hashes;
     double increment {static_cast<double>(config_.chunk_discretization) / 2};
-    for (double i = (robot_pose.position.x() - half_side_length); i < (robot_pose.position.x() + half_side_length); i += increment) {
-        for (double j = (robot_pose.position.y() - half_side_length); j < (robot_pose.position.y() + half_side_length); j += increment) {
-            for (double k = (robot_pose.position.z() - half_side_length); k < (robot_pose.position.z() + half_side_length); k += increment) {
+    for (double i = (robot_pose.translation().x() - half_side_length); i < (robot_pose.translation().x() + half_side_length); i += increment) {
+        for (double j = (robot_pose.translation().y() - half_side_length); j < (robot_pose.translation().y() + half_side_length); j += increment) {
+            for (double k = (robot_pose.translation().z() - half_side_length); k < (robot_pose.translation().z() + half_side_length); k += increment) {
                 hashes.insert(hasher_->generateHash(Eigen::Vector3d(i, j, k)));
             }
         }
@@ -66,13 +66,13 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
     }
 }
 
-void Hylacomylus::update(PointCloud::Ptr &cloud, const Pose3D &robot_pose)
+void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
 {
     auto data_hashes {indexData(cloud, robot_pose, config_.active_mapping)};
     updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(data_hashes) : std::nullopt);
 }
 
-void Hylacomylus::updateLocalMap(const Pose3D &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes)
+void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes)
 {
     auto hashes {findLocalHashes(robot_pose, config_.half_side_length)};
     if (additional_hashes.has_value()) {
@@ -82,7 +82,7 @@ void Hylacomylus::updateLocalMap(const Pose3D &robot_pose, const std::optional<s
     composeLocalMap(hashes);
 }
 
-std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Pose3D &robot_pose, const bool &add_data)
+std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data)
 {
     std::uint32_t collection_hash {Hylacomylus::generateTimeHash()};
     std::set<std::uint64_t> data_hashes;
@@ -98,9 +98,9 @@ std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Pos
         if (add_data) {
             // stamp all these points with the updated base localization before they are indexed into atlas
             cloud->points[i].collection_id = collection_hash;
-            cloud->points[i].sensor_a = robot_pose.position.x();
-            cloud->points[i].sensor_b = robot_pose.position.y();
-            cloud->points[i].sensor_c = robot_pose.position.z();
+            cloud->points[i].sensor_a = robot_pose.translation().x();
+            cloud->points[i].sensor_b = robot_pose.translation().y();
+            cloud->points[i].sensor_c = robot_pose.translation().z();
 
             // add an entry to atlas if it doesn't yet exist
             if (!(atlas_->contains(hash))) {

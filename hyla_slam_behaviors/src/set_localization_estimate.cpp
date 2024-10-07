@@ -17,7 +17,6 @@ BT::NodeStatus SetLocalizationEstimate::onStart()
 {
     // read in targets
     auto pose_option {getInput<geometry_msgs::msg::PoseStamped>("pose")};
-    auto pose = pose_option.value();
 
     auto result {BT::NodeStatus::RUNNING};
     service_client_ = node_->create_client<Trigger>("hyla_slam/set_localization_estimate");
@@ -34,7 +33,14 @@ BT::NodeStatus SetLocalizationEstimate::onStart()
 
     // construct a request
     auto req {std::make_shared<Trigger::Request>()};
-    req->pose = pose;
+
+    if (pose_option.has_value()) {
+        req->pose = pose_option.value();
+    } else {
+        RCLCPP_INFO(node_->get_logger(), "No pose provided! Assuming Identity pose!");
+        req->identity = true;
+    }
+
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Set localization estimate " << result << "...");
 

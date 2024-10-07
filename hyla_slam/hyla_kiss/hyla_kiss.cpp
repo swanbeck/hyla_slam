@@ -79,9 +79,9 @@ void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
 
 void HylaKiss::setPose(const Sophus::SE3d &pose)
 {
-    Sophus::SE3d last_pose_ = pose;
+    last_pose_ = pose;
     // TODO should last_delta be updated as well?
-    // Sophus::Se3d last_delta_ = ;
+    // last_delta_ = ;
     adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
 }
 

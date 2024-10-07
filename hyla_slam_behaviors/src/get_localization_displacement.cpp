@@ -19,8 +19,8 @@ BT::NodeStatus GetLocalizationDisplacement::onStart()
     // read in targets
     auto linear_target_option {getInput<double>("linear_target")};
     auto angular_target_option {getInput<double>("angular_target")};
-    linear_target_ = linear_target_option.value();
-    angular_target_ = angular_target_option.value();
+    linear_target_ = linear_target_option.value_or(-1.0);
+    angular_target_ = angular_target_option.value_or(-1.0);
 
     auto result {BT::NodeStatus::RUNNING};
     service_client_ = node_->create_client<Trigger>("hyla_slam/get_localization_displacement");
@@ -63,7 +63,9 @@ BT::NodeStatus GetLocalizationDisplacement::onRunning()
 
             if (resp->linear < 0.0 || resp->angular < 0.0) {
                 RCLCPP_WARN_STREAM(node_->get_logger(), "Linear or angular displacement is not initialized!");
-            } else if (resp->linear > linear_target_ || resp->angular > angular_target_) {
+            } else if (linear_target_ > 0.0 && resp->linear > linear_target_) {
+                return_status = BT::NodeStatus::SUCCESS;
+            } else if (angular_target_ > 0.0 && resp->angular > angular_target_) {
                 return_status = BT::NodeStatus::SUCCESS;
             }
 
