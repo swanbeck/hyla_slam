@@ -1,0 +1,53 @@
+<root main_tree_to_execute="SLAM" BTCPP_format="4">
+
+    <!-- perform full SLAM for 10 iterations -->
+    <BehaviorTree ID="SLAM">
+        <Sequence>
+            <SetLocalizationEstimate/>
+            <UpdateLocalizationMap/>
+            <EnableLocalization/>
+            <GetMap/>
+            <Delay delay_msec="3000">
+                <RetryUntilSuccessful num_attempts="3">
+                    <SubTree ID="GatherData"/>
+                </RetryUntilSuccessful>
+            </Delay>
+            <Repeat num_cycles="10">
+                <RetryUntilSuccessful num_attempts="-1">
+                    <SubTree ID="IterateSLAM"/>
+                </RetryUntilSuccessful>
+            </Repeat>
+            <DisableLocalization/>
+            <UnloadData/>
+        </Sequence>
+    </BehaviorTree>
+
+    <BehaviorTree ID="GatherData">
+        <Sequence>
+            <!-- GetPointCloudData is available in watertender_behaviors -->
+            <GetPointCloudData
+                topic="/ouster/points"
+                cloud="{point_cloud}"
+                local_transform="{local_transform}"
+                global_transform="{global_transform}"
+            />
+            <IndexData 
+                point_cloud="{point_cloud}" 
+                local_transform="{local_transform}"
+                global_transform="{global_transform}"
+            />
+        </Sequence>
+    </BehaviorTree>
+
+    <BehaviorTree ID="IterateSLAM">
+        <Sequence>
+            <GetMappingDisplacement 
+                linear_target="2.0" 
+                angular_target="3.14"
+            />
+            <SubTree ID="GatherData"/>
+            <GetMap/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

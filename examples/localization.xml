@@ -1,0 +1,36 @@
+<root main_tree_to_execute="LocalizeToMap" BTCPP_format="4">
+
+    <!-- localize to a map known a priori, rescoping it during navigation -->
+    <BehaviorTree ID="LocalizeToMap">
+        <Sequence>
+            <SetLocalizationEstimate/>
+            <UpdateLocalizationMap/>
+            <EnableLocalization/>
+            <GetMap/>
+            <Repeat num_cycles="3">
+                <RetryUntilSuccessful num_attempts="-1">
+                    <Sequence>
+                        <GetLocalizationDisplacement 
+                            linear_target="5.0" 
+                        />
+                        <UpdateLocalizationMap/>
+                        <GetMap/>
+                    </Sequence>
+                </RetryUntilSuccessful>
+            </Repeat>
+            <DisableLocalization/>
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- localize without a prior map for 60 seconds -->
+    <BehaviorTree ID="Localization">
+        <Sequence>
+            <SetLocalizationEstimate/>
+            <EnableLocalization/>
+            <Delay delay_msec="60000">
+                <DisableLocalization/>
+            </Delay>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    point_cloud_topic: /ouster/points
+    fixed_frame: map
+    robot_frame: base_link
+    localization_frame: os_lidar
+
+    mapping:
+      data_dir: /root/data/
+      half_side_length: 5.0
+      active_mapping: true
+    
+    localization:
+      max_range: 5.0
+      initial_threshold: 2.0

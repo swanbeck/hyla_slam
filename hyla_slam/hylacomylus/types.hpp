@@ -10,7 +10,6 @@ struct MappingConfig
 {
     std::string fixed_frame;
     std::string robot_frame;
-    std::string odom_frame;
     
     int chunk_discretization;
     std::string chunk_load_dir;

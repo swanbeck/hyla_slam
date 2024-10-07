@@ -15,12 +15,11 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     auto mapping_params = params_.mapping;
     mapping_config_.fixed_frame = params_.fixed_frame;
     mapping_config_.robot_frame = params_.robot_frame;
-    mapping_config_.odom_frame = params_.odom_frame;
     mapping_config_.chunk_discretization = mapping_params.chunk_discretization;
     mapping_config_.chunk_load_dir = mapping_params.data_dir;
     mapping_config_.half_side_length = mapping_params.half_side_length;
-    mapping_config_.active_mapping = params_.active_mapping;
-    mapping_config_.persist_recent_chunks = params_.persist_recent_chunks;
+    mapping_config_.active_mapping = mapping_params.active_mapping;
+    mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
