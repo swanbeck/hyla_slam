@@ -1,25 +1,5 @@
 hyla_slam:
   
-  sensor_drivers_bridged:
-    type: bool
-    default_value: false
-    description: "Sets QoS settings to make sensor data subscribers function properly when data is bridged. Set to '1' if sensor drivers are being bridged from ROS1 and '2' if they are running in ROS2"
-  active_mapping:
-    type: bool
-    default_value: true
-    description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
-  persist_recent_chunks:
-    type: bool
-    default_value: false
-    description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
-  localization_threshold:
-    type: double
-    default_value: 5.0
-    description: "Distance from last update to localization map robot must cover before the localization map is updated again"
-  mapping_threshold:
-    type: double
-    default_value: 1.0
-    description: "Distance from last update to map robot must cover before new data is added to map"
   point_cloud_topic:
     type: string
     description: "Incoming point cloud topic name"
@@ -39,6 +19,18 @@ hyla_slam:
     type: string
     default_value: "odom"
     description: "Fixed odom frame; allows there to be a difference between the fixed world frame of preexisting data and current for data reuse"
+  sensor_drivers_bridged:
+    type: bool
+    default_value: false
+    description: "Sets QoS settings to make sensor data subscribers function properly when data is bridged from ROS1. True if drivers are running in ROS1, false if not."
+  active_mapping:
+    type: bool
+    default_value: true
+    description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
+  persist_recent_chunks:
+    type: bool
+    default_value: false
+    description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
 
   mapping:
     data_dir:
