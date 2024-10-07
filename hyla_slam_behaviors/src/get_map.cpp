@@ -4,7 +4,9 @@ namespace hyla_slam_behaviors {
 
 GetMap::GetMap(const std::string name, const BT::NodeConfig &config)
 : BT::StatefulActionNode(name, config), node_(rclcpp::Node::make_shared(name))
-{}
+{
+    pub_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("/map", 1);
+}
 
 BT::PortsList GetMap::providedPorts()
 {
@@ -55,8 +57,11 @@ BT::NodeStatus GetMap::onRunning()
             auto resp {request_future_->get()};
             setOutput("map", resp->map);
 
+            pub_->publish(resp->map);
+
             request_future_ = std::nullopt;
             RCLCPP_INFO_STREAM(node_->get_logger(), "Get map responded! Returning " << return_status << "!");
+
             return return_status;
         }
     }

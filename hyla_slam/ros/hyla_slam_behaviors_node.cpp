@@ -153,8 +153,10 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
     auto map {mapper_->map()};
 
     if (!map->points.size() > 0) {
-        response->success = false;
-        response->message = "Map stored by mapper has 0 points!";
+        std::string msg {"Map stored by mapper has 0 points!"};
+        RCLCPP_WARN_STREAM(this->get_logger(), msg.c_str());
+        response->success = true;
+        response->message = msg;
         return;
     }
 
@@ -168,11 +170,13 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
         localizer_->setMap(kiss_icp_ros::utils::PointCloud2ToEigen(map_msg));
     }
 
+    std::string msg {"Localization map updated!"};
     response->success = true;
-    response->message = "Localization map updated!";
-    RCLCPP_INFO(this->get_logger(), "Localization map updated!");
+    response->message = msg;
+    RCLCPP_INFO(this->get_logger(), msg.c_str());
 }
 
+// TODO make this use both local and global transforms
 void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response)
 {
     // get current pose
@@ -190,7 +194,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     pcl::fromROSMsg(request->cloud, *input_point_cloud);
     
     PointCloud::Ptr transformed_point_cloud (new PointCloud);
-    Eigen::Matrix4d tf = request->lookup_transform ? current_pose_estimate.matrix() : conversion_utils::transformStamped2TransformationMatrix(request->transform);
+    Eigen::Matrix4d tf = request->lookup_transform ? current_pose_estimate.matrix() : conversion_utils::transformStamped2TransformationMatrix(request->global_transform);
     pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, tf);
 
     // index data in mapper
@@ -259,13 +263,14 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
         }
     }
 
+    // TODO figure out why this is failing (probably applying the inverse transform?)
     // transform cloud into localization frame
     auto transformed_msg {BehaviorsNode::transformPointCloud(*raw_msg, params_.robot_frame)};
-
     if (!transformed_msg.has_value()) {
         RCLCPP_ERROR(this->get_logger(), "Could not transform cloud into robot frame! No SLAM update performed.");
         return;
     }
+    // std::optional<sensor_msgs::msg::PointCloud2> transformed_msg(*raw_msg);
 
     // register the frame
     sensor_msgs::msg::PointCloud2::ConstSharedPtr msg(std::make_shared<sensor_msgs::msg::PointCloud2>(transformed_msg.value()));
