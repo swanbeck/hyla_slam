@@ -66,10 +66,16 @@ Vector3dVectorTuple HylaKiss::voxelize(const std::vector<Eigen::Vector3d> &frame
 
 void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
 {
+    // save current map (to be reintroduced once new map has been set)
+    auto previous_map {local_map_.Pointcloud()};
+
     // convert to VoxelHashMap and set to class variable
     const auto &[source, frame_downsample] = voxelize(map);
     local_map_.Clear();
     local_map_.Update(frame_downsample, last_pose_.translation());
+
+    // now reintroduce previous data (useful to bias toward set map but also maintain flexibility for what robot sees online)
+    local_map_.Update(previous_map, last_pose_.translation());
 
     // TODO add in adpative threshold update here to make more robust to large changes that may be introduced when localization_map is added? 
     // adaptive_threshold_.UpdateModelDeviation();
