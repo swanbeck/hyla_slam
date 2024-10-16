@@ -44,14 +44,14 @@ public:
 
     PointCloud::Ptr map();
 
+    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
+
 private:
     std::uint32_t generateTimeHash();
 
     std::set<std::uint64_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
 
     void rescopeStorage(const std::set<std::uint64_t> &hashes);
-
-    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
     
     std::set<std::uint64_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data);
 

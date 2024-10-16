@@ -248,6 +248,14 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
 
 void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
 {
+    // rescope map
+    Sophus::SE3d current_pose;
+    {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
+        current_pose = localizer_->pose();
+    }
+    mapper_->updateLocalMap(current_pose);
+
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;
     pcl::toROSMsg(*(mapper_->map()), msg);
