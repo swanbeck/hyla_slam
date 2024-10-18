@@ -235,7 +235,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
         transform = (tf2::transformToSophus(request->local_transform) * tf2::transformToSophus(request->global_transform)).inverse();
     }
 
-    pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, transform.matrix());
+    pcl::transformPointCloudWithNormals(*input_point_cloud, *transformed_point_cloud, transform.matrix());
 
     // index data in mapper
     mapper_->update(transformed_point_cloud, transform);
