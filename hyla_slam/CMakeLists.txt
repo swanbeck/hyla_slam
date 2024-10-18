@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16...3.26)
-project(hyla_slam VERSION 1.0.0 LANGUAGES CXX)
+project(hyla_slam VERSION 1.0.0 LANGUAGES C CXX)
 
 # set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
@@ -40,7 +40,7 @@ set(SOPHUS_USE_BASIC_LOGGING ON CACHE BOOL "Don't use fmt for Sophus library")
 set(BUILD_SOPHUS_TESTS OFF CACHE BOOL "Don't build Sophus tests")
 set(BUILD_SOPHUS_EXAMPLES OFF CACHE BOOL "Don't build Sophus Examples")
 FetchContent_Declare(sophus SYSTEM URL https://github.com/strasdat/Sophus/archive/refs/tags/1.22.10.tar.gz
-                     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_LIST_DIR}/sophus.patch UPDATE_DISCONNECTED 1)
+                     PATCH_COMMAND patch -p1 < ${CMAKE_SOURCE_DIR}/../kiss-icp/cpp/kiss_icp/3rdparty/sophus/sophus.patch UPDATE_DISCONNECTED 1)
 FetchContent_MakeAvailable(sophus)
 
 include_directories(${PCL_INCLUDE_DIRS})
