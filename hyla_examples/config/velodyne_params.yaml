@@ -1,0 +1,23 @@
+hyla_slam:
+  ros__parameters:
+    point_cloud_topic: /velodyne_points
+    fixed_frame: map
+    robot_frame: base_link
+    localization_frame: velodyne
+
+    mapping:
+      data_dir: /tmp/hyla_data/
+      half_side_length: 5.0
+      active_mapping: true
+    
+    localization:
+      max_range: 5.0
+      initial_threshold: 2.0
+
+watertender:
+  ros__parameters:
+    fixed_frame: map
+    robot_frame: base_link
+    raw_data_topics:
+      PointCloud2:
+        - /velodyne_points
