@@ -34,6 +34,7 @@ add_library(hyla_slam_behaviors STATIC
     src/enable_localization.cpp
     src/get_localization_displacement.cpp
     src/get_map.cpp
+    src/get_map_similarity.cpp
     src/get_mapping_displacement.cpp
     src/index_data.cpp
     src/set_localization_estimate.cpp

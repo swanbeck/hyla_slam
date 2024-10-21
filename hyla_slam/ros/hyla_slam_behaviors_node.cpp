@@ -20,6 +20,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.half_side_length = mapping_params.half_side_length;
     mapping_config_.active_mapping = mapping_params.active_mapping;
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
+    mapping_config_.recent_scan_memory = mapping_params.recent_scan_memory;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
@@ -95,6 +96,12 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     get_map_server_ = this->create_service<hyla_slam_interfaces::srv::GetMap>(
         "~/get_map",
         std::bind(&BehaviorsNode::getMap, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
+    get_map_similarity_server_ = this->create_service<hyla_slam_interfaces::srv::GetMapSimilarity>(
+        "~/get_map_similarity",
+        std::bind(&BehaviorsNode::getMapSimilarity, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
@@ -178,7 +185,7 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
     }
 
     hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
-    mapper_->update(dummy_cloud, map_lidar_estimate);
+    localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
     localization_reference_pose_ = std::make_unique<Sophus::SE3d>(map_lidar_estimate);
 
     // get map from mapper
@@ -251,7 +258,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, transform.matrix());
 
     // index data in mapper
-    mapper_->update(transformed_point_cloud, transform);
+    latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
     
     // update mapping reference pose
     mapping_reference_pose_ = std::make_unique<Sophus::SE3d>(transform);
@@ -261,6 +268,34 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "indexData: " << elapsed.count() << "ms");
+}
+
+void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Response> response)
+{
+    if (latest_hashes_.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Cannot compute similarity with an empty latest hash set! Index new data to the map to enable this.");
+        return;
+    }
+
+    // compute Jaccard Similarity between sets
+    auto jaccard_similarity = [](const std::set<std::uint64_t> &s1, const std::set<std::uint64_t> &s2) -> double {
+        std::set<std::uint64_t> intersection_set;
+        std::set<std::uint64_t> union_set;
+
+        std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
+        std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));
+
+        if (union_set.empty()) { return 1.0; }
+
+        return static_cast<double>(intersection_set.size()) / union_set.size();
+    };
+
+    if (localization_reference_hashes_.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Localization reference hashes are empty!");
+    }
+
+    double similarity {jaccard_similarity(latest_hashes_, localization_reference_hashes_)};
+    response->score = similarity;
 }
 
 void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
@@ -273,7 +308,9 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
         std::shared_lock<std::shared_mutex> lock(mutex_);
         current_pose = localizer_->pose();
     }
-    mapper_->updateLocalMap(current_pose);
+
+    hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
+    mapper_->update(dummy_cloud, current_pose);
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;
