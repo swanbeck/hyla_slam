@@ -64,7 +64,7 @@ public:
     const Sophus::SE3d &delta() const { return last_delta_; }
     Sophus::SE3d &delta() { return last_delta_; }
 
-    Sophus::SE3d extrapolateTransform(const Sophus::SE3d &T_initial, double delta_t_initial, double delta_t_new);
+    Sophus::SE3d extrapolateTransform(const Sophus::SE3d &T_initial, const double delta_t_initial, const double delta_t_new, double &sigma);
 
 private:
     Sophus::SE3d last_pose_;
