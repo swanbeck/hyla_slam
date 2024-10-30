@@ -38,13 +38,11 @@ public:
 
     ~Hylacomylus();
 
-    void update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose);
+    std::set<uint64_t> update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose);
 
     void dumpMemoryData();
 
     PointCloud::Ptr map();
-
-    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
 
 private:
     std::uint32_t generateTimeHash();
@@ -61,12 +59,20 @@ private:
 
     void deleteMappingResult(const MappingResult &result);
 
+    std::set<std::uint64_t> updateHashMemory(std::set<std::uint64_t> &hashes);
+
+    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes=std::nullopt);
+
 private:
     MappingConfig config_;
     std::unique_ptr<ChunkHasher> hasher_;
     std::unique_ptr<std::map<std::uint64_t, Chunk>> atlas_;
     std::unique_ptr<std::stack<MappingResult>> collection_history_;
     PointCloud::Ptr local_map_;
+
+    std::deque<std::set<std::uint64_t>> hash_memory_;
+    std::set<std::uint64_t> most_recent_hash_set_;
+    std::set<std::uint64_t> last_update_hash_set_;
 
 }; // class Hylacomylus
 

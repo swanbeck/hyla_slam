@@ -17,6 +17,7 @@ struct MappingConfig
 
     bool active_mapping;
     bool persist_recent_chunks;
+    int recent_scan_memory;
 }; // struct MappingConfig
 
 struct MappingResult

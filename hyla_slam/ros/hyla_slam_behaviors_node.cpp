@@ -20,6 +20,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.half_side_length = mapping_params.half_side_length;
     mapping_config_.active_mapping = mapping_params.active_mapping;
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
+    mapping_config_.recent_scan_memory = mapping_params.recent_scan_memory;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
@@ -98,6 +99,12 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         rmw_qos_profile_default,
         service_cb_group_
     );
+    get_map_similarity_server_ = this->create_service<hyla_slam_interfaces::srv::GetMapSimilarity>(
+        "~/get_map_similarity",
+        std::bind(&BehaviorsNode::getMapSimilarity, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
     index_data_server_ = this->create_service<hyla_slam_interfaces::srv::IndexData>(
         "~/index_data",
         std::bind(&BehaviorsNode::indexData, this, std::placeholders::_1, std::placeholders::_2),
@@ -123,6 +130,8 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)
 {
+    auto start {std::chrono::high_resolution_clock::now()};
+
     geometry_msgs::msg::PoseStamped map_robot_estimate;
     if (request->identity == true) {
         RCLCPP_WARN_STREAM(this->get_logger(), "Request to set localization estimate recieved with identity field set true! Using identity transform for update.");
@@ -158,10 +167,16 @@ void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_inte
         localizer_->setPose(map_lidar_pose);
         auto pose = localizer_->pose();
     }
+
+    auto end {std::chrono::high_resolution_clock::now()};
+    std::chrono::duration<double, std::milli> elapsed {end - start};
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "setLocalizationEstimate: " << elapsed.count() << "ms");
 }
 
 void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+    auto start {std::chrono::high_resolution_clock::now()};
+
     // rescope map to current location
     Sophus::SE3d map_lidar_estimate;
     {
@@ -170,7 +185,8 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
     }
 
     hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
-    mapper_->update(dummy_cloud, map_lidar_estimate);
+    localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
+    localization_reference_pose_ = std::make_unique<Sophus::SE3d>(map_lidar_estimate);
 
     // get map from mapper
     auto map {mapper_->map()};
@@ -193,16 +209,20 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
         localizer_->setMap(kiss_icp_ros::utils::PointCloud2ToEigen(map_msg));
     }
 
-    localization_reference_pose_ = std::make_unique<Sophus::SE3d>(map_lidar_estimate);
-
     std::string msg {"Localization map updated!"};
     response->success = true;
     response->message = msg;
     RCLCPP_INFO(this->get_logger(), msg.c_str());
+
+    auto end {std::chrono::high_resolution_clock::now()};
+    std::chrono::duration<double, std::milli> elapsed {end - start};
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "updateLocalizationMap: " << elapsed.count() << "ms");
 }
 
 void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response)
 {
+    auto start {std::chrono::high_resolution_clock::now()};
+
     // get current pose
     Sophus::SE3d map_lidar_estimate;
     {
@@ -235,26 +255,62 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
         transform = (tf2::transformToSophus(request->local_transform) * tf2::transformToSophus(request->global_transform)).inverse();
     }
 
-    pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, transform.matrix());
+    pcl::transformPointCloudWithNormals(*input_point_cloud, *transformed_point_cloud, transform.matrix());
 
     // index data in mapper
-    mapper_->update(transformed_point_cloud, transform);
+    latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
     
     // update mapping reference pose
     mapping_reference_pose_ = std::make_unique<Sophus::SE3d>(transform);
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Data indexed to existing map! Updated map has " << mapper_->map()->points.size() << " points.");
+
+    auto end {std::chrono::high_resolution_clock::now()};
+    std::chrono::duration<double, std::milli> elapsed {end - start};
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "indexData: " << elapsed.count() << "ms");
+}
+
+void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Response> response)
+{
+    if (latest_hashes_.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Cannot compute similarity with an empty latest hash set! Index new data to the map to enable this.");
+        return;
+    }
+
+    // compute Jaccard Similarity between sets
+    auto jaccard_similarity = [](const std::set<std::uint64_t> &s1, const std::set<std::uint64_t> &s2) -> double {
+        std::set<std::uint64_t> intersection_set;
+        std::set<std::uint64_t> union_set;
+
+        std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
+        std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));
+
+        if (union_set.empty()) { return 1.0; }
+
+        return static_cast<double>(intersection_set.size()) / union_set.size();
+    };
+
+    if (localization_reference_hashes_.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Localization reference hashes are empty!");
+    }
+
+    double similarity {jaccard_similarity(latest_hashes_, localization_reference_hashes_)};
+    response->score = similarity;
 }
 
 void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
 {
+    auto start {std::chrono::high_resolution_clock::now()};
+
     // rescope map
     Sophus::SE3d current_pose;
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         current_pose = localizer_->pose();
     }
-    mapper_->updateLocalMap(current_pose);
+
+    hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
+    mapper_->update(dummy_cloud, current_pose);
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;
@@ -262,6 +318,10 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     msg.header.frame_id = params_.fixed_frame;
     response->map = msg;
     RCLCPP_INFO_STREAM(this->get_logger(), "Returning map of size " << mapper_->map()->size() << ".");
+
+    auto end {std::chrono::high_resolution_clock::now()};
+    std::chrono::duration<double, std::milli> elapsed {end - start};
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "getMap: " << elapsed.count() << "ms");
 }
 
 void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response)
@@ -303,6 +363,8 @@ void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr
 
 void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg)
 {
+    auto start {std::chrono::high_resolution_clock::now()};
+    
     // check to make sure data is expressed in the proper frame
     if (raw_msg->header.frame_id != params_.localization_frame) {
         RCLCPP_WARN_STREAM(this->get_logger(), "Incoming sensor data is in frame " << raw_msg->header.frame_id << " but localization_frame is " << params_.localization_frame << "; these should match. No localization update will be performed.");
@@ -354,6 +416,10 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
     map_robot_tf.child_frame_id = params_.robot_frame;
     map_robot_tf.header.stamp = raw_msg->header.stamp;
     tf_broadcaster_->sendTransform(map_robot_tf);
+
+    auto end {std::chrono::high_resolution_clock::now()};
+    std::chrono::duration<double, std::milli> elapsed {end - start};
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "updateLocalization: " << elapsed.count() << "ms");
 }
 
 void BehaviorsNode::enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)

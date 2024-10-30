@@ -1,4 +1,6 @@
 #include "hyla_kiss.hpp"
+#include <iostream>
+#include <cmath>
 
 namespace hyla_kiss {
 
@@ -18,7 +20,7 @@ Vector3dVectorTuple HylaKiss::registerFrame(const std::vector<Eigen::Vector3d> &
     const auto &[source, frame_downsample] = voxelize(cropped_frame);
 
     // get adaptive threshold
-    const auto sigma = adaptive_threshold_.ComputeThreshold();
+    auto sigma = adaptive_threshold_.ComputeThreshold();
 
     // extrapolate last_delta_ (to remove constant timing assumption in constant velocity assumption)
     auto current_time {std::chrono::steady_clock::now()};
@@ -28,7 +30,7 @@ Vector3dVectorTuple HylaKiss::registerFrame(const std::vector<Eigen::Vector3d> &
         auto dt {std::chrono::duration<double>(current_time - *previous_t_)};
 
         if (previous_dt_ != nullptr) {
-            extrapolated_delta = HylaKiss::extrapolateTransform(last_delta_, previous_dt_->count(), dt.count());
+            extrapolated_delta = HylaKiss::extrapolateTransform(last_delta_, previous_dt_->count(), dt.count(), sigma);
         }
 
         previous_dt_ = std::make_unique<std::chrono::duration<double>>(dt);
@@ -91,16 +93,38 @@ void HylaKiss::setPose(const Sophus::SE3d &pose)
     adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
 }
 
-Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, double delta_t_initial, double delta_t_new) {
+Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, const double delta_t_initial, const double delta_t_new, double &sigma) {
     Eigen::Matrix3d R_initial {T_initial.rotationMatrix()};
     Eigen::Vector3d t_initial {T_initial.translation()};
 
+    // make sure dts are not crazy far apart
+    if (delta_t_initial <= 0 || delta_t_new <= 0) {
+        // std::cout << "One or both delta_t values are less than or equal to zero!" << std::endl;
+        return T_initial;
+    }
+
+    double dt_scalar {delta_t_new / delta_t_initial};
+
+    // scaling up sigma so that it better responds to drops in messages
+    if (dt_scalar > 1.0) {
+        sigma += sigma * log(dt_scalar);
+    }
+
+    double max_c {2.0};
+    if (dt_scalar > max_c) {
+        // std::cout << "delta_t_new (" << delta_t_new << ") is more than " << max_c << "x delta_t_initial (" << delta_t_initial << "). This is likely to cause errors! Capping the dt at " << max_c << " the previous..." << std::endl;
+        dt_scalar = max_c;
+
+        // double c {max_c - log(max_c)};
+        // dt_scalar = 1 + log(dt_scalar) + c; // note this is linear until max_c, then becomes logarithmic
+    }
+
     // extrapolate translation
-    Eigen::Vector3d t_new {t_initial * delta_t_new / delta_t_initial};
+    Eigen::Vector3d t_new {t_initial * dt_scalar};
 
     // extrapolate rotation
     Eigen::AngleAxisd axis_angle(R_initial);
-    double new_angle {axis_angle.angle() * delta_t_new / delta_t_initial};
+    double new_angle {axis_angle.angle() * dt_scalar};
     Eigen::AngleAxisd new_axis_angle(new_angle, axis_angle.axis());
     Eigen::Matrix3d R_new {new_axis_angle.toRotationMatrix()};
 

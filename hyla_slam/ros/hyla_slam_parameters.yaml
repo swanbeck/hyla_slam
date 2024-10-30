@@ -72,6 +72,14 @@ hyla_slam:
       read_only: true
       default_value: false
       description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
+    
+    recent_scan_memory:
+      type: int
+      read_only: true
+      default_value: 0
+      description: "Data associated with last n scans will be maintained in map even if it exceeds the set half_side_length; meant to enable more reliable localization when using a small local map in a large environment"
+      validation:
+        gt_eq<>: 0
 
   localization:
     voxel_size:

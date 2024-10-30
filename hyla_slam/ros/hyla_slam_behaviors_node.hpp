@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <mutex>
+#include <chrono>
+#include <algorithm>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -23,6 +25,7 @@
 #include <std_srvs/srv/trigger.hpp>
 #include "hyla_slam_interfaces/srv/get_displacement.hpp"
 #include "hyla_slam_interfaces/srv/get_map.hpp"
+#include "hyla_slam_interfaces/srv/get_map_similarity.hpp"
 #include "hyla_slam_interfaces/srv/index_data.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
@@ -50,6 +53,7 @@ private:
     void indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response);
     void updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>);
+    void getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Response> response);
 
     void startExecutors()
     {
@@ -112,12 +116,16 @@ private:
     std::unique_ptr<Sophus::SE3d> localization_reference_pose_;
     std::unique_ptr<Sophus::SE3d> mapping_reference_pose_;
 
+    std::set<std::uint64_t> latest_hashes_;
+    std::set<std::uint64_t> localization_reference_hashes_;
+
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_localization_displacement_server_;
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_mapping_displacement_server_;
 
     std::shared_mutex mutex_;
 
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetMap>> get_map_server_;
+    std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetMapSimilarity>> get_map_similarity_server_;
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::IndexData>> index_data_server_;
 
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> update_localization_map_server_;
