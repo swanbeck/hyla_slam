@@ -11,6 +11,7 @@
 
 // CPP
 #include <set>
+#include <filesystem>
 
 // Custom
 #include "surface_repair_common/point_type.h"
@@ -32,7 +33,7 @@ struct Chunk {
     Chunk(std::uint64_t handle, std::string root_dir) : id(handle), dir(root_dir), loaded(false), chunk(new PointCloud) {};
 
     std::string getFileAddress() {
-        return dir + std::to_string(id) + ".pcd";
+        return std::filesystem::path(dir).append(std::to_string(id) + ".pcd");
     }
     bool isLoaded() {
         return loaded;

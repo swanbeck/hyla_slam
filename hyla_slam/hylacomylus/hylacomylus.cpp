@@ -66,10 +66,12 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
     }
 }
 
-void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
+std::set<uint64_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
 {
     auto data_hashes {indexData(cloud, robot_pose, config_.active_mapping)};
-    updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(data_hashes) : std::nullopt);
+    auto recent_hashes {updateHashMemory(data_hashes)};
+    updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(recent_hashes) : std::nullopt);
+    return recent_hashes;
 }
 
 void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes)
@@ -80,6 +82,24 @@ void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::opti
     }
     rescopeStorage(hashes);
     composeLocalMap(hashes);
+}
+
+std::set<std::uint64_t> Hylacomylus::updateHashMemory(std::set<std::uint64_t> &hashes)
+{
+    if (config_.recent_scan_memory == 0) { return hashes; }
+
+    hash_memory_.push_back(hashes);
+    while (hash_memory_.size() > config_.recent_scan_memory) {
+        hash_memory_.pop_front();
+    }
+
+    // now take union of all hashes in recent memory
+    std::set<uint64_t> recent_hashes;
+    for (const auto &hash_set : hash_memory_) {
+        recent_hashes.insert(hash_set.begin(), hash_set.end());
+    }
+
+    return recent_hashes;
 }
 
 std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data)

@@ -38,7 +38,7 @@ BT::NodeStatus GetLocalizationDisplacement::onStart()
     // construct a request
     auto req {std::make_shared<Trigger::Request>()};
     request_future_ = service_client_->async_send_request(req);
-    RCLCPP_INFO_STREAM(node_->get_logger(), "Get localization displacement " << result << "...");
+    RCLCPP_DEBUG_STREAM(node_->get_logger(), "Get localization displacement " << result << "...");
 
     return result;
 }
@@ -62,7 +62,7 @@ BT::NodeStatus GetLocalizationDisplacement::onRunning()
             auto resp {request_future_->get()};
 
             if (resp->linear < 0.0 || resp->angular < 0.0) {
-                RCLCPP_WARN_STREAM(node_->get_logger(), "Linear or angular displacement is not initialized!");
+                RCLCPP_WARN(node_->get_logger(), "Linear or angular displacement is not initialized!");
             } else if (linear_target_ > 0.0 && resp->linear > linear_target_) {
                 return_status = BT::NodeStatus::SUCCESS;
             } else if (angular_target_ > 0.0 && resp->angular > angular_target_) {
@@ -70,7 +70,7 @@ BT::NodeStatus GetLocalizationDisplacement::onRunning()
             }
 
             request_future_ = std::nullopt;
-            RCLCPP_INFO_STREAM(node_->get_logger(), "Get localization displacement responded (" << resp->linear << ", " << resp->angular << ")! Returning " << return_status << "!");
+            RCLCPP_DEBUG_STREAM(node_->get_logger(), "Get localization displacement responded (" << resp->linear << ", " << resp->angular << ")! Returning " << return_status << "!");
             return return_status;
         }
     }
