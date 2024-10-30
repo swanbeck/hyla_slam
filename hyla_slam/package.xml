@@ -24,6 +24,7 @@
     <depend>sophus</depend>
     <depend>tbb</depend>
     <depend>robin-map-dev</depend>
+    <depend>kiss_icp</depend>
 
     <export>
         <build_type>ament_cmake</build_type>
