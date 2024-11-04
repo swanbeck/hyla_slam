@@ -32,6 +32,7 @@ set(BEHAVIOR_TREE_DEPS
 )
 
 add_library(hyla_slam_behaviors STATIC
+    src/construct_pose.cpp
     src/disable_localization.cpp
     src/enable_localization.cpp
     src/get_localization_displacement.cpp
