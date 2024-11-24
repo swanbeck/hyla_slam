@@ -4,3 +4,6 @@
 [submodule "kiss-icp"]
 	path = kiss-icp
 	url = https://github.com/PRBonn/kiss-icp.git
+[submodule "genz-icp"]
+	path = genz-icp
+	url = https://github.com/cocel-postech/genz-icp.git
