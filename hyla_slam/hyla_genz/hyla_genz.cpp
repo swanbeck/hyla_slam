@@ -101,6 +101,7 @@ void HylaGenz::setMap(const std::vector<Eigen::Vector3d> &map)
 
 void HylaGenz::setPose(const Sophus::SE3d &pose)
 {
+    poses_ = std::vector<Sophus::SE3d>();
     poses_.push_back(pose);
     // poses_.back() = pose;
     // TODO should last_delta be updated as well?
