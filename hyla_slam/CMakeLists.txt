@@ -17,8 +17,16 @@ else()
     FetchContent_MakeAvailable(ext_kiss_icp_core)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../genz-icp/cpp/genz_icp/ AND NOT IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR})
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../genz-icp/cpp/genz_icp ${CMAKE_CURRENT_BINARY_DIR}/genz_icp)
+endif()
+
 if(NOT TARGET kiss_icp_core)
     message(FATAL_ERROR "kiss_icp_core target not found")
+endif()
+
+if(NOT TARGET genz_icp::core)
+    message(FATAL_ERROR "genz_icp_core target not found")
 endif()
 
 find_package(ament_cmake REQUIRED)
@@ -57,6 +65,16 @@ add_dependencies(hyla_kiss kiss_icp_core)
 target_include_directories(hyla_kiss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(hyla_kiss PUBLIC kiss_icp_core)
 
+# hyla_genz
+add_library(hyla_genz STATIC
+    hyla_genz/hyla_genz.hpp
+    hyla_genz/hyla_genz.cpp
+    hyla_genz/kiss_icp_utils.hpp
+)
+add_dependencies(hyla_genz genz_icp::core)
+target_include_directories(hyla_genz PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(hyla_genz PUBLIC genz_icp::core)
+
 # hylacomylus
 add_library(hylacomylus STATIC
     hylacomylus/hylacomylus.hpp
@@ -73,6 +91,11 @@ target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES} sophus)
 generate_parameter_library(
     hyla_slam_parameters
     ros/hyla_slam_parameters.yaml
+)
+
+generate_parameter_library(
+    hyla_slam_genz_parameters
+    ros/hyla_slam_genz_parameters.yaml
 )
 
 add_executable(hyla_slam_behaviors_node ros/hyla_slam_behaviors_node.cpp)
@@ -93,8 +116,27 @@ target_link_libraries(hyla_slam_behaviors_node
     hyla_slam_parameters
 )
 
+add_executable(hyla_slam_genz_behaviors_node ros/hyla_slam_genz_behaviors_node.cpp)
+ament_target_dependencies(hyla_slam_genz_behaviors_node
+    rclcpp
+    geometry_msgs
+    sensor_msgs
+    tf2_ros
+    pcl_ros
+    pcl_conversions
+    std_srvs
+    hyla_slam_interfaces
+)
+target_link_libraries(hyla_slam_genz_behaviors_node
+    ${PCL_LIBRARIES}
+    hylacomylus
+    hyla_genz
+    hyla_slam_genz_parameters
+)
+
 install(TARGETS
     hyla_slam_behaviors_node
+    hyla_slam_genz_behaviors_node
     DESTINATION lib/${PROJECT_NAME}
 )
 

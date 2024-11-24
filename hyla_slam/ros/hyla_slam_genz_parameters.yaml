@@ -1,0 +1,193 @@
+hyla_slam_genz:
+  
+  point_cloud_topic:
+    type: string
+    read_only: true
+    description: "Incoming point cloud topic name; used for raw localization updates"
+    validation:
+      not_empty<>: []
+
+  fixed_frame:
+    type: string
+    read_only: true
+    default_value: "map"
+    description: "Fixed world frame"
+    validation:
+      not_empty<>: []
+
+  robot_frame:
+    type: string
+    read_only: true
+    default_value: "base_link"
+    description: "Robot frame, transforms are broadcasted for this frame, so it should be the parent link of your robot"
+    validation:
+      not_empty<>: []
+
+  localization_frame:
+    type: string
+    read_only: true
+    default_value: "os_lidar"
+    description: "Sensor data frame; incoming LiDAR data is expected to be expressed in this frame and its transform to robot_frame is expected to be available"
+    validation:
+      not_empty<>: []
+
+  sensor_drivers_bridged:
+    type: bool
+    read_only: true
+    default_value: true
+    description: "Sets QoS settings to make sensor data subscribers function properly when data is bridged from ROS1. True if drivers are running in ROS1, false if not."
+
+  mapping:
+    data_dir:
+      type: string
+      read_only: true
+      description: "Directory where data will be written to and read from disk"
+      validation:
+        not_empty<>: []
+
+    chunk_discretization:
+      type: int
+      read_only: true
+      default_value: 1
+      description: "Cube side length in meters of chunks used for map discretization (volume of each chunk is chunk_discretization^3 m^3)"
+      validation:
+        gt<>: 0
+
+    half_side_length:
+      type: double
+      read_only: true
+      default_value: 5.0
+      description: "Half side length in meters of cubic local map surronding robot (volume is (2*half_side_length)^3 m^3)"
+      validation:
+        gt<>: 0.0
+
+    active_mapping:
+      type: bool
+      read_only: true
+      default_value: true
+      description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
+
+    persist_recent_chunks:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
+    
+    recent_scan_memory:
+      type: int
+      read_only: true
+      default_value: 0
+      description: "Data associated with last n scans will be maintained in map even if it exceeds the set half_side_length; meant to enable more reliable localization when using a small local map in a large environment"
+      validation:
+        gt_eq<>: 0
+
+  localization:
+    voxel_size:
+      type: double
+      read_only: true
+      default_value: 0.5
+      description: "Size of voxels maintained by KISS-ICP during localization updates"
+      validation:
+        gt<>: 0.0
+
+    max_range:
+      type: double
+      read_only: true
+      default_value: 10.0
+      description: "Maximum distance from origin (WRT input frame) within which points in a scan will be used for localization"
+      validation:
+        gt<>: 0.0
+
+    min_range:
+      type: double
+      read_only: true
+      default_value: 1.0
+      description: "Minimum distance from origin (WRT input frame) within which points in a scan will be used for localization"
+      validation:
+        gt_eq<>: 0.0
+
+    max_points_per_voxel:
+      type: int
+      read_only: true
+      default_value: 20
+      description: "Maximum number of points that will be maintained in each voxelized region of space within the localization pipeline"
+      validation:
+        gt<>: 0
+
+    min_motion_th:
+      type: double
+      read_only: true
+      default_value: 0.1
+      description: "Minimum motion size used by adpative threshold; even when stationary, motion of this size will be added to constant velocity model"
+      validation:
+        gt_eq<>: 0.0
+
+    initial_threshold:
+      type: double
+      read_only: true
+      default_value: 2.0
+      description: "Displacement (in meters) used for first iteration of adaptive threshold; your initial pose estimate should be within this range of the true location"
+      validation:
+        gt<>: 0.0
+
+    max_num_iterations:
+      type: int
+      read_only: true
+      default_value: 500
+      description: "Maximum number of iterations performed in a single localization estimate update"
+      validation:
+        gt<>: 0
+
+    convergence_criterion:
+      type: double
+      read_only: true
+      default_value: 0.0001
+      description: "Loss threshold for a single iteration of ICP; will return early if total error is below this value"
+      validation:
+        gt<>: 0.0
+
+    max_num_threads:
+      type: int
+      read_only: true
+      default_value: 0
+      description: "Number of threads used for parallel computation of registration; if 0, will use as many threads as are available"
+      validation:
+        gt_eq<>: 0
+    
+    map_cleanup_radius:
+      type: double
+      read_only: true
+      default_value: 100.0
+      description: ""
+      validation:
+        gt<>: 0.0
+
+    planarity_threshold:
+      type: double
+      read_only: true
+      default_value: 0.12
+      description: ""
+      validation:
+        gt<>: 0.0
+
+    max_points_per_voxelized_scan:
+      type: int
+      read_only: true
+      default_value: 1500
+      description: ""
+      validation:
+        gt<>: 0
+    
+    min_points_per_voxelized_scan:
+      type: int
+      read_only: true
+      default_value: 1300
+      description: ""
+      validation:
+        gt<>: 0
+
+    deskew:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Controls whether ICP will deskew point clouds before using them for localization (deskewing happens when the sensor moves during motion)"
