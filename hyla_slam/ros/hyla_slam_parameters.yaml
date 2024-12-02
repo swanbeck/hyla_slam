@@ -31,7 +31,7 @@ hyla_slam:
     validation:
       not_empty<>: []
 
-  sensor_drivers_bridged:
+  reliable_qos:
     type: bool
     read_only: true
     default_value: true

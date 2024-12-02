@@ -46,7 +46,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
     // point cloud subscription (for localization)
     std::optional<rclcpp::QoS> sensor_data_qos {std::nullopt};
-    if (params_.sensor_drivers_bridged) {
+    if (params_.reliable_qos) {
         sensor_data_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable();
     }
     auto localization_cb_options {rclcpp::SubscriptionOptions()};
