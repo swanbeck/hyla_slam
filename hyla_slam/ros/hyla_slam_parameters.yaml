@@ -31,11 +31,11 @@ hyla_slam:
     validation:
       not_empty<>: []
 
-  reliable_qos:
+  best_effort_qos:
     type: bool
     read_only: true
-    default_value: true
-    description: "Sets QoS settings to make sensor data subscribers function properly when data is bridged from ROS1. True if drivers are running in ROS1, false if not."
+    default_value: false
+    description: "Sets QoS settings to make sensor data subscribers use best effort."
 
   mapping:
     data_dir:

@@ -46,14 +46,14 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
     // point cloud subscription (for localization)
     std::optional<rclcpp::QoS> sensor_data_qos {std::nullopt};
-    if (params_.reliable_qos) {
-        sensor_data_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable();
+    if (params_.best_effort_qos) {
+        sensor_data_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
     }
     auto localization_cb_options {rclcpp::SubscriptionOptions()};
     localization_cb_options.callback_group = localization_cb_group_;
     point_cloud_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         params_.point_cloud_topic,
-        sensor_data_qos.value_or(rclcpp::QoS(rclcpp::KeepLast(1)).best_effort()),
+        sensor_data_qos.value_or(rclcpp::QoS(rclcpp::KeepLast(1)).reliable()),
         std::bind(&BehaviorsNode::updateLocalization, this, std::placeholders::_1),
         localization_cb_options
     );
