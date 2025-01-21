@@ -72,15 +72,29 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
 
         RCLCPP_DEBUG_STREAM(this->get_logger(), "d: " << dist_since_update_ << "m");
 
-        if (dist_since_update_ >= 3.0) {
-            // RCLCPP_INFO(this->get_logger(), "Would add new factor!");
+        if (dist_since_update_ >= 1.0) {
             
             auto rel_odom {nodes_.back().odom_pose.inverse() * pose_estimate};
-            // RCLCPP_INFO_STREAM(this->get_logger(), "Rel odom: " << rel_odom.translation().x() << ", " << rel_odom.translation().y() << ", " << rel_odom.translation().z());
             nodes_.push_back(SamNode(pose_estimate, rel_odom, raw_msg));
             dist_since_update_ = 0.0;
 
             sam_->addOdomFactor(rel_odom);
+
+            // add loop closures
+            int recent_excluded {5};
+            double closeness {2.0};
+
+            std::size_t effective_size = (nodes_.size() > static_cast<size_t>(recent_excluded)) ? nodes_.size() - static_cast<size_t>(recent_excluded) : 0;
+
+            for (std::size_t i = 0; i < effective_size; ++i) {
+                // check closeness to previous poses
+                if ((nodes_.at(i).odom_pose.translation() - pose_estimate.translation()).norm() < closeness) {
+                    // TODO add loop closure
+                    
+
+                    RCLCPP_INFO_STREAM(this->get_logger(), "Would add loop closure between " << static_cast<int>(i) << " and new pose!");
+                }
+            }
 
             // performing the optimization every so often
             if (nodes_.size() % 5 == 0) {
@@ -99,16 +113,11 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     }
 
 
-
-
-    // TODO need to perform scan registration to get out the factors for registration
-
+    // get out map representation and publish it
 
 
 
 
-
-    // TODO need to detect loop closures and such
 
 
 

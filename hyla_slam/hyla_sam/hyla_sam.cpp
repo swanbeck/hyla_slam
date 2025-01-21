@@ -52,16 +52,16 @@ gtsam::Values HylaSam::optimize()
 
     // compare the pre and post
 
-    if (optimized.size() != initial_estimate_.size()) {
-        return optimized;
-    }
+    // if (optimized.size() != initial_estimate_.size()) {
+    //     return optimized;
+    // }
 
-    for (size_t i = 0; i < optimized.size(); ++i) {
-        gtsam::Pose3 init_pose = initial_estimate_.at<gtsam::Pose3>(i);
-        gtsam::Pose3 opt_pose = optimized.at<gtsam::Pose3>(i);
-        std::cout << "InitPose " << i << ": " << init_pose << std::endl;
-        std::cout << "OptPose " << i << ": " << opt_pose << std::endl;
-    }
+    // for (size_t i = 0; i < optimized.size(); ++i) {
+    //     gtsam::Pose3 init_pose = initial_estimate_.at<gtsam::Pose3>(i);
+    //     gtsam::Pose3 opt_pose = optimized.at<gtsam::Pose3>(i);
+    //     std::cout << "InitPose " << i << ": " << init_pose << std::endl;
+    //     std::cout << "OptPose " << i << ": " << opt_pose << std::endl;
+    // }
 
     return optimized;
 }
