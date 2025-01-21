@@ -42,6 +42,10 @@ PoseGraph::PoseGraph(const rclcpp::NodeOptions &opts)
 
 void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg)
 {
+    if (nodes_.empty()) {
+        nodes_.push_back(SamNode(Sophus::SE3d(), Sophus::SE3d(), raw_msg));
+    }
+
     auto start {std::chrono::high_resolution_clock::now()};
     
     // check to make sure data is expressed in the proper frame
@@ -56,9 +60,35 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     // get the pose out
     Sophus::SE3d pose_estimate {localizer_->pose()};
 
-    // TODO need to accumulate odometry (both in general and since last update)
+    // accumulate odometry (both in general and since last update)
+    if (last_pose_.has_value()) {
+        dist_since_update_ += (pose_estimate.translation() - last_pose_.value().translation()).norm();
 
+        RCLCPP_DEBUG_STREAM(this->get_logger(), "d: " << dist_since_update_ << "m");
 
+        if (dist_since_update_ >= 3.0) {
+            // RCLCPP_INFO(this->get_logger(), "Would add new factor!");
+            
+            auto rel_odom {nodes_.back().odom_pose.inverse() * pose_estimate};
+            // RCLCPP_INFO_STREAM(this->get_logger(), "Rel odom: " << rel_odom.translation().x() << ", " << rel_odom.translation().y() << ", " << rel_odom.translation().z());
+            nodes_.push_back(SamNode(pose_estimate, rel_odom, raw_msg));
+            dist_since_update_ = 0.0;
+
+            sam_->addOdomFactor(rel_odom);
+
+            // performing the optimization every so often
+            if (nodes_.size() % 5 == 0) {
+                auto opt_start {std::chrono::high_resolution_clock::now()};
+                RCLCPP_INFO(this->get_logger(), "Trying to optimize graph!");
+                sam_->optimize();
+                auto opt_end {std::chrono::high_resolution_clock::now()};
+                std::chrono::duration<double, std::milli> opt_elapsed {opt_end - opt_start};
+                RCLCPP_INFO_STREAM(this->get_logger(), "Finished opt in " << opt_elapsed.count() << "ms");
+
+                // create markers for poses
+            }
+        }
+    }
 
 
 
@@ -85,6 +115,9 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     robot_tf.child_frame_id = raw_msg->header.frame_id;
     robot_tf.header.stamp = raw_msg->header.stamp;
     tf_broadcaster_->sendTransform(robot_tf);
+
+    // update stuff for next iteration
+    last_pose_ = pose_estimate;
 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};

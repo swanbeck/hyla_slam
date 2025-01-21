@@ -32,6 +32,16 @@
 
 namespace hyla_slam {
 
+struct SamNode {
+    Sophus::SE3d odom_pose;
+    Sophus::SE3d rel_odom_pose;
+    sensor_msgs::msg::PointCloud2::ConstSharedPtr scan;
+
+    SamNode(const Sophus::SE3d odom, const Sophus::SE3d rel_odom, const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
+    : odom_pose(odom), rel_odom_pose(rel_odom), scan(msg)
+    {}
+}; // struct Node
+
 class PoseGraph : public rclcpp::Node
 {
 public:
@@ -53,6 +63,11 @@ private:
     std::unique_ptr<hyla_sam::HylaSam> sam_;
 
     hyla_kiss::KissConfig localization_config_;
+
+    double dist_since_update_ {};
+    std::optional<Sophus::SE3d> last_pose_;
+    
+    std::vector<SamNode> nodes_;
 
 }; // class PoseGraph
 
