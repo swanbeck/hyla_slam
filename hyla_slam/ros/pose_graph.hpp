@@ -58,6 +58,10 @@ private:
 
     void publishSamMarkers(const gtsam::Values &values, const gtsam::NonlinearFactorGraph &graph);
 
+    Sophus::SE3d registerScans(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &new_msg, const sensor_msgs::msg::PointCloud2::ConstSharedPtr &old_msg, const Sophus::SE3d &initial_guess);
+
+    void generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
     std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>> sub_;
 
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -78,6 +82,10 @@ private:
     std::vector<SamNode> nodes_;
 
     std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::MarkerArray>> marker_pub_;
+
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> generate_map_server_;
+
+    std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> cloud_pub_;
 
 }; // class PoseGraph
 

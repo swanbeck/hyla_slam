@@ -23,18 +23,18 @@ public:
     gtsam::Pose3 sophus2Gtsam(const Sophus::SE3d &pose);
     void initialize();
     void addOdomFactor(const Sophus::SE3d &relative_odom);
+    void addLoopClosureFactor(const Sophus::SE3d &registration_pose, const int &old_scan_index);
+    gtsam::Values optimize();
+    gtsam::NonlinearFactorGraph getGraph();
 
     void addRegistrationFactor();
-    void addLoopClosureFactor();
-    gtsam::Values optimize();
-
-    gtsam::NonlinearFactorGraph getGraph();
 
 private:
     gtsam::NonlinearFactorGraph graph_;
     gtsam::Values initial_estimate_;
     gtsam::Values estimate_;
     gtsam::SharedNoiseModel noise_;
+    gtsam::SharedNoiseModel loop_noise_;
     gtsam::ISAM2 isam2_;
 
 }; // class HylaSam

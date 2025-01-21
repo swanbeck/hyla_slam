@@ -126,6 +126,7 @@ target_link_libraries(pose_graph
     hyla_sam
     hyla_slam_parameters
     gtsam
+    kiss_icp_core
 )
 
 install(TARGETS

@@ -18,7 +18,8 @@ gtsam::Pose3 HylaSam::sophus2Gtsam(const Sophus::SE3d &pose)
 void HylaSam::initialize()
 {
     graph_ = gtsam::NonlinearFactorGraph();
-    noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3).finished());
+    noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1).finished());
+    loop_noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1).finished());
 
     gtsam::ISAM2Params isam2_params;
     isam2_params.relinearizeThreshold = 0.01;
@@ -43,6 +44,14 @@ void HylaSam::addOdomFactor(const Sophus::SE3d &relative_odom)
     // add initial_guess
     gtsam::Pose3 initial_pose = initial_estimate_.at<gtsam::Pose3>(t_minus_1).compose(odom);
     initial_estimate_.insert(t_minus_1 + 1, initial_pose);
+}
+
+void HylaSam::addLoopClosureFactor(const Sophus::SE3d &registration_pose, const int &old_scan_index)
+{
+    auto rel_pose {HylaSam::sophus2Gtsam(registration_pose)};
+    auto new_scan_index {initial_estimate_.keys().back()};
+    
+    graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(old_scan_index, new_scan_index, rel_pose, loop_noise_));
 }
 
 gtsam::Values HylaSam::optimize()

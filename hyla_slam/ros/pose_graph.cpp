@@ -42,6 +42,16 @@ PoseGraph::PoseGraph(const rclcpp::NodeOptions &opts)
         10
     );
 
+    cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+        "map",
+        10
+    );
+
+    generate_map_server_ = this->create_service<std_srvs::srv::Trigger>(
+        "~/generate_map",
+        std::bind(&PoseGraph::generateMap, this, std::placeholders::_1, std::placeholders::_2)
+    );
+
     RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
 
@@ -89,10 +99,14 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
             for (std::size_t i = 0; i < effective_size; ++i) {
                 // check closeness to previous poses
                 if ((nodes_.at(i).odom_pose.translation() - pose_estimate.translation()).norm() < closeness) {
-                    // TODO add loop closure
-                    
+                    // register scans together
+                    auto initial_guess {nodes_.at(i).odom_pose.inverse() * pose_estimate};
+                    auto guess {registerScans(raw_msg, nodes_.at(i).scan, initial_guess)};
 
-                    RCLCPP_INFO_STREAM(this->get_logger(), "Would add loop closure between " << static_cast<int>(i) << " and new pose!");
+                    // use this to add a factor to the graph
+                    sam_->addLoopClosureFactor(guess, static_cast<int>(i));
+
+                    RCLCPP_INFO_STREAM(this->get_logger(), "Added loop closure between " << static_cast<int>(i) << " and new pose!");
                 }
             }
 
@@ -139,6 +153,84 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "receiveScan: " << elapsed.count() << "ms");
+}
+
+Sophus::SE3d PoseGraph::registerScans(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &new_msg, const sensor_msgs::msg::PointCloud2::ConstSharedPtr &old_msg, const Sophus::SE3d &initial_guess)
+{
+    auto new_scan {kiss_icp_ros::utils::PointCloud2ToEigen(new_msg)};
+    auto old_scan {kiss_icp_ros::utils::PointCloud2ToEigen(old_msg)};
+
+    auto registration {kiss_icp::Registration(params_.localization.max_num_iterations, params_.localization.convergence_criterion, params_.localization.max_num_threads)};
+
+    // preprocess the input cloud
+    const auto &new_cropped_frame = kiss_icp::Preprocess(new_scan, params_.localization.max_range, params_.localization.min_range);
+    // const auto &old_cropped_frame = kiss_icp::Preprocess(old_scan, params_.localization.max_range, params_.localization.min_range);
+
+    // voxelize
+    const auto &[new_source, new_frame_downsample] = localizer_->voxelize(new_cropped_frame);
+    // const auto &[old_source, old_frame_downsample] = voxelize(old_cropped_frame);
+
+    auto map {kiss_icp::VoxelHashMap(params_.localization.voxel_size, params_.localization.max_range, params_.localization.max_points_per_voxel)};
+    // map.Update(old_frame_downsample, Eigen::Vector3d());
+    map.Update(old_scan, Eigen::Vector3d());
+
+    const auto new_pose {registration.AlignPointsToMap(new_source, map, initial_guess, 3.0 * params_.localization.initial_threshold, params_.localization.initial_threshold / 3.0)};
+
+    // use new pose to get back factor
+    return new_pose;
+}
+
+// TODO make a new function to generate the single map
+void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+    hylacomylus::PointCloud::Ptr map (new hylacomylus::PointCloud);
+
+    auto values {sam_->optimize()};
+
+    for (int i = 0; i < nodes_.size(); ++i) {
+        hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
+        pcl::fromROSMsg(*(nodes_.at(i).scan), *input_point_cloud);
+        hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
+
+        if (!values.exists<gtsam::Pose3>(i)) {
+            continue;
+        }
+
+        gtsam::Pose3 pose {values.at<gtsam::Pose3>(i)};
+
+        Eigen::Matrix3d rotation_matrix = pose.rotation().matrix();
+        Eigen::Vector3d translation_vector = pose.translation();
+
+        Sophus::SO3d sophus_rotation(rotation_matrix); // Convert rotation to Sophus::SO3d
+        Sophus::SE3d sophus_pose(sophus_rotation, translation_vector);
+
+        pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, sophus_pose.matrix());
+
+        *map += *transformed_point_cloud; 
+    }
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Map has " << map->points.size() << " points!");
+
+    // for (const auto &node : nodes_) {
+    //     // transform the points using the values
+    //     hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
+    //     pcl::fromROSMsg(node.scan, *input_point_cloud);
+    //     hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
+
+    //     pcl::transformPointCloud(*input_point_cloud, *transformed_point_cloud, transform.inverse());
+
+    //     // add them to the map
+    //     *map += *transformed_point_cloud; 
+    // }
+
+    // save map to disk or publish it or both
+
+    sensor_msgs::msg::PointCloud2 msg;
+    pcl::toROSMsg(*map, msg);
+    msg.header.frame_id = params_.fixed_frame;
+    cloud_pub_->publish(msg);
+    
+    response->success = true;
 }
 
 void PoseGraph::publishSamMarkers(const gtsam::Values &values, const gtsam::NonlinearFactorGraph &graph)
