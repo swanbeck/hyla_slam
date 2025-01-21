@@ -24,11 +24,16 @@
 #include "hyla_slam_parameters.hpp"
 
 #include <std_srvs/srv/trigger.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+
 #include "hyla_slam_interfaces/srv/get_displacement.hpp"
 #include "hyla_slam_interfaces/srv/get_map.hpp"
 #include "hyla_slam_interfaces/srv/get_map_similarity.hpp"
 #include "hyla_slam_interfaces/srv/index_data.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
+
+#include <gtsam/nonlinear/Values.h>
+#include <gtsam/geometry/Pose3.h>
 
 namespace hyla_slam {
 
@@ -50,6 +55,8 @@ public:
 private:
     void receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg);
 
+    void publishSamMarkers(const gtsam::Values &values);
+
     std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>> sub_;
 
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -68,6 +75,8 @@ private:
     std::optional<Sophus::SE3d> last_pose_;
     
     std::vector<SamNode> nodes_;
+
+    std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::MarkerArray>> marker_pub_;
 
 }; // class PoseGraph
 

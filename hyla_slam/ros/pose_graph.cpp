@@ -37,8 +37,14 @@ PoseGraph::PoseGraph(const rclcpp::NodeOptions &opts)
 
     sam_ = std::make_unique<hyla_sam::HylaSam>();
 
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        "poses",
+        10
+    );
+
     RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
+
 
 void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg)
 {
@@ -80,12 +86,13 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
             if (nodes_.size() % 5 == 0) {
                 auto opt_start {std::chrono::high_resolution_clock::now()};
                 RCLCPP_INFO(this->get_logger(), "Trying to optimize graph!");
-                sam_->optimize();
+                auto values {sam_->optimize()};
                 auto opt_end {std::chrono::high_resolution_clock::now()};
                 std::chrono::duration<double, std::milli> opt_elapsed {opt_end - opt_start};
                 RCLCPP_INFO_STREAM(this->get_logger(), "Finished opt in " << opt_elapsed.count() << "ms");
 
                 // create markers for poses
+                publishSamMarkers(values);
             }
         }
     }
@@ -122,6 +129,45 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "receiveScan: " << elapsed.count() << "ms");
+}
+
+void PoseGraph::publishSamMarkers(const gtsam::Values &values)
+{
+    visualization_msgs::msg::MarkerArray markers;
+
+    for (const auto &key_value : values) {
+        gtsam::Key key = key_value.key;
+        if (!values.exists<gtsam::Pose3>(key)) {
+            continue;
+        }
+
+        gtsam::Pose3 pose {values.at<gtsam::Pose3>(key)};
+        Eigen::Vector3d trans {pose.translation()};
+        Eigen::Quaterniond rot {pose.rotation().toQuaternion()};
+
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = params_.fixed_frame;
+        marker.id = key;
+        marker.type = visualization_msgs::msg::Marker::ARROW;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.pose.position.x = trans.x();
+        marker.pose.position.y = trans.y();
+        marker.pose.position.z = trans.z();
+        marker.pose.orientation.x = rot.x();
+        marker.pose.orientation.y = rot.y();
+        marker.pose.orientation.z = rot.z();
+        marker.pose.orientation.w = rot.w();
+        marker.scale.x = 0.2;  // Arrow length
+        marker.scale.y = 0.02; // Arrow shaft diameter
+        marker.scale.z = 0.02; // Arrow head diameter
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+        marker.color.a = 1.0;
+        markers.markers.push_back(marker);
+    }
+
+    marker_pub_->publish(markers);
 }
 
 } // namespace hyla_slam

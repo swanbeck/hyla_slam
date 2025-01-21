@@ -45,7 +45,7 @@ void HylaSam::addOdomFactor(const Sophus::SE3d &relative_odom)
     initial_estimate_.insert(t_minus_1 + 1, initial_pose);
 }
 
-void HylaSam::optimize()
+gtsam::Values HylaSam::optimize()
 {
     gtsam::LevenbergMarquardtOptimizer optimizer(graph_, initial_estimate_);
     gtsam::Values optimized {optimizer.optimize()};
@@ -65,7 +65,5 @@ void HylaSam::optimize()
 
     return optimized;
 }
-
-
 
 } // namespace hyla_sam

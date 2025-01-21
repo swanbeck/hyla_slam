@@ -26,6 +26,7 @@ find_package(PCL 1.3 REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -112,6 +113,7 @@ ament_target_dependencies(pose_graph
     rclcpp
     geometry_msgs
     sensor_msgs
+    visualization_msgs
     tf2_ros
     pcl_ros
     pcl_conversions
@@ -123,6 +125,7 @@ target_link_libraries(pose_graph
     hyla_kiss
     hyla_sam
     hyla_slam_parameters
+    gtsam
 )
 
 install(TARGETS

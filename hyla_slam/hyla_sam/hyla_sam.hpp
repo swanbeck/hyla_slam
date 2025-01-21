@@ -26,7 +26,7 @@ public:
 
     void addRegistrationFactor();
     void addLoopClosureFactor();
-    void optimize();
+    gtsam::Values optimize();
 
 private:
     gtsam::NonlinearFactorGraph graph_;
