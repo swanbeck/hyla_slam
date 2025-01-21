@@ -18,8 +18,8 @@ gtsam::Pose3 HylaSam::sophus2Gtsam(const Sophus::SE3d &pose)
 void HylaSam::initialize()
 {
     graph_ = gtsam::NonlinearFactorGraph();
-    noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1).finished());
-    loop_noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1).finished());
+    noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3).finished());
+    loop_noise_ = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3).finished());
 
     gtsam::ISAM2Params isam2_params;
     isam2_params.relinearizeThreshold = 0.01;

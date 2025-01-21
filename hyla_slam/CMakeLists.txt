@@ -123,6 +123,7 @@ ament_target_dependencies(pose_graph
 target_link_libraries(pose_graph
     ${PCL_LIBRARIES}
     hyla_kiss
+    hylacomylus
     hyla_sam
     hyla_slam_parameters
     gtsam

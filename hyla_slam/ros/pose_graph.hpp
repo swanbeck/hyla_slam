@@ -8,6 +8,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.hpp>
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
+
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>

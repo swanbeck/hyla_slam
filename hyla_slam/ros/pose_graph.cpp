@@ -92,13 +92,15 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
 
             // add loop closures
             int recent_excluded {5};
-            double closeness {2.0};
+            double min_closeness {0.0};
+            double max_closeness {3.0};
 
             std::size_t effective_size = (nodes_.size() > static_cast<size_t>(recent_excluded)) ? nodes_.size() - static_cast<size_t>(recent_excluded) : 0;
 
             for (std::size_t i = 0; i < effective_size; ++i) {
                 // check closeness to previous poses
-                if ((nodes_.at(i).odom_pose.translation() - pose_estimate.translation()).norm() < closeness) {
+                auto d {(nodes_.at(i).odom_pose.translation() - pose_estimate.translation()).norm()};
+                if (d < max_closeness && d > min_closeness) {
                     // register scans together
                     auto initial_guess {nodes_.at(i).odom_pose.inverse() * pose_estimate};
                     auto guess {registerScans(raw_msg, nodes_.at(i).scan, initial_guess)};
@@ -111,7 +113,7 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
             }
 
             // performing the optimization every so often
-            if (nodes_.size() % 5 == 0) {
+            if (nodes_.size() % 10 == 0) {
                 auto opt_start {std::chrono::high_resolution_clock::now()};
                 RCLCPP_INFO(this->get_logger(), "Trying to optimize graph!");
                 auto values {sam_->optimize()};
@@ -183,14 +185,14 @@ Sophus::SE3d PoseGraph::registerScans(const sensor_msgs::msg::PointCloud2::Const
 // TODO make a new function to generate the single map
 void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
-    hylacomylus::PointCloud::Ptr map (new hylacomylus::PointCloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr map (new pcl::PointCloud<pcl::PointXYZ>);
 
     auto values {sam_->optimize()};
 
     for (int i = 0; i < nodes_.size(); ++i) {
-        hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr input_point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*(nodes_.at(i).scan), *input_point_cloud);
-        hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
         if (!values.exists<gtsam::Pose3>(i)) {
             continue;
@@ -225,8 +227,15 @@ void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Reques
 
     // save map to disk or publish it or both
 
+    double leaf_size {0.07};
+    pcl::PointCloud<pcl::PointXYZ>::Ptr output (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::VoxelGrid<pcl::PointXYZ> grid;
+    grid.setLeafSize(leaf_size, leaf_size, leaf_size);
+    grid.setInputCloud(map);
+    grid.filter(*output);
+
     sensor_msgs::msg::PointCloud2 msg;
-    pcl::toROSMsg(*map, msg);
+    pcl::toROSMsg(*output, msg);
     msg.header.frame_id = params_.fixed_frame;
     cloud_pub_->publish(msg);
     
