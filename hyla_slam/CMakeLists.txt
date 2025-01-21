@@ -34,6 +34,9 @@ find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(hyla_slam_interfaces REQUIRED)
+find_package(GTSAMCMakeTools REQUIRED)
+find_package(GTSAM REQUIRED)
+include_directories(${GTSAM_INCLUDE_DIR})
 
 include(FetchContent)
 set(SOPHUS_USE_BASIC_LOGGING ON CACHE BOOL "Don't use fmt for Sophus library")
@@ -93,8 +96,12 @@ target_link_libraries(hyla_slam_behaviors_node
     hyla_slam_parameters
 )
 
+add_executable(gtsam_test ros/gtsam_test.cpp)
+target_link_libraries(gtsam_test gtsam)
+
 install(TARGETS
     hyla_slam_behaviors_node
+    gtsam_test
     DESTINATION lib/${PROJECT_NAME}
 )
 
