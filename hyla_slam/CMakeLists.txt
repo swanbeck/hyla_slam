@@ -99,9 +99,27 @@ target_link_libraries(hyla_slam_behaviors_node
 add_executable(gtsam_test ros/gtsam_test.cpp)
 target_link_libraries(gtsam_test gtsam)
 
+add_executable(pose_graph ros/pose_graph.cpp)
+ament_target_dependencies(pose_graph
+    rclcpp
+    geometry_msgs
+    sensor_msgs
+    tf2_ros
+    pcl_ros
+    pcl_conversions
+    std_srvs
+    hyla_slam_interfaces
+)
+target_link_libraries(pose_graph
+    ${PCL_LIBRARIES}
+    hyla_kiss
+    hyla_slam_parameters
+)
+
 install(TARGETS
     hyla_slam_behaviors_node
     gtsam_test
+    pose_graph
     DESTINATION lib/${PROJECT_NAME}
 )
 
