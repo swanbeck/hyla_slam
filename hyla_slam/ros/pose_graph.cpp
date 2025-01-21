@@ -34,6 +34,10 @@ PoseGraph::PoseGraph(const rclcpp::NodeOptions &opts)
     localization_config_.max_num_threads = localization_params.max_num_threads;
     localization_config_.deskew = localization_params.deskew;
     localizer_ = std::make_unique<hyla_kiss::HylaKiss>(localization_config_);
+
+    sam_ = std::make_unique<hyla_sam::HylaSam>();
+
+    RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
 
 void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg)
@@ -54,7 +58,25 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
 
     // TODO need to accumulate odometry (both in general and since last update)
 
+
+
+
+
+
     // TODO need to perform scan registration to get out the factors for registration
+
+
+
+
+
+
+    // TODO need to detect loop closures and such
+
+
+
+
+
+
 
     // broadcast the raw tf
     geometry_msgs::msg::TransformStamped robot_tf;
@@ -66,7 +88,7 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
-    RCLCPP_INFO_STREAM(this->get_logger(), "receiveScan: " << elapsed.count() << "ms");
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "receiveScan: " << elapsed.count() << "ms");
 }
 
 } // namespace hyla_slam

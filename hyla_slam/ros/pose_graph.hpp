@@ -14,6 +14,9 @@
 
 #include "hyla_kiss/hyla_kiss.hpp"
 #include "hyla_kiss/kiss_icp_utils.hpp"
+
+#include "hyla_sam/hyla_sam.hpp"
+
 #include "hylacomylus/hylacomylus.hpp"
 #include "hylacomylus/types.hpp"
 #include "hylacomylus/utils.hpp"
@@ -47,6 +50,7 @@ private:
     hyla_slam::Params params_;
 
     std::unique_ptr<hyla_kiss::HylaKiss> localizer_;
+    std::unique_ptr<hyla_sam::HylaSam> sam_;
 
     hyla_kiss::KissConfig localization_config_;
 

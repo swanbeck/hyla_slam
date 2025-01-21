@@ -73,6 +73,14 @@ add_library(hylacomylus STATIC
 target_include_directories(hylacomylus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES} sophus)
 
+# hyla sam
+add_library(hyla_sam STATIC
+    hyla_sam/hyla_sam.hpp
+    hyla_sam/hyla_sam.cpp
+)
+target_include_directories(hyla_sam PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(hyla_sam PUBLIC sophus gtsam)
+
 generate_parameter_library(
     hyla_slam_parameters
     ros/hyla_slam_parameters.yaml
@@ -113,6 +121,7 @@ ament_target_dependencies(pose_graph
 target_link_libraries(pose_graph
     ${PCL_LIBRARIES}
     hyla_kiss
+    hyla_sam
     hyla_slam_parameters
 )
 
