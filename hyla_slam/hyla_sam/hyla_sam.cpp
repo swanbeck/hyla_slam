@@ -66,4 +66,9 @@ gtsam::Values HylaSam::optimize()
     return optimized;
 }
 
+gtsam::NonlinearFactorGraph HylaSam::getGraph()
+{
+    return graph_;
+}
+
 } // namespace hyla_sam

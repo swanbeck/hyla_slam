@@ -28,6 +28,8 @@ public:
     void addLoopClosureFactor();
     gtsam::Values optimize();
 
+    gtsam::NonlinearFactorGraph getGraph();
+
 private:
     gtsam::NonlinearFactorGraph graph_;
     gtsam::Values initial_estimate_;

@@ -92,7 +92,8 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
                 RCLCPP_INFO_STREAM(this->get_logger(), "Finished opt in " << opt_elapsed.count() << "ms");
 
                 // create markers for poses
-                publishSamMarkers(values);
+                auto graph {sam_->getGraph()};
+                publishSamMarkers(values, graph);
             }
         }
     }
@@ -131,9 +132,53 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
     RCLCPP_DEBUG_STREAM(this->get_logger(), "receiveScan: " << elapsed.count() << "ms");
 }
 
-void PoseGraph::publishSamMarkers(const gtsam::Values &values)
+void PoseGraph::publishSamMarkers(const gtsam::Values &values, const gtsam::NonlinearFactorGraph &graph)
 {
     visualization_msgs::msg::MarkerArray markers;
+
+    visualization_msgs::msg::Marker edge_marker;
+    edge_marker.header.frame_id = params_.fixed_frame;  // Use your desired frame
+    edge_marker.header.stamp = this->now();
+    edge_marker.ns = "graph_edges";
+    edge_marker.id = 0;  // Single marker ID for all edges
+    edge_marker.type = visualization_msgs::msg::Marker::LINE_LIST;
+    edge_marker.action = visualization_msgs::msg::Marker::ADD;
+    edge_marker.scale.x = 0.02;  // Line thickness
+    edge_marker.color.r = 0.0;
+    edge_marker.color.g = 0.0;
+    edge_marker.color.b = 1.0;
+    edge_marker.color.a = 1.0;
+
+    // Iterate through all factors in the graph
+    for (const auto& factor : graph) {
+        auto between_factor = boost::dynamic_pointer_cast<gtsam::BetweenFactor<gtsam::Pose3>>(factor);
+        if (between_factor) {
+            // Extract the keys (poses) connected by the factor
+            gtsam::Key key1 = between_factor->key1();
+            gtsam::Key key2 = between_factor->key2();
+
+            // Retrieve the poses from the values
+            if (values.exists<gtsam::Pose3>(key1) && values.exists<gtsam::Pose3>(key2)) {
+                gtsam::Pose3 pose1 = values.at<gtsam::Pose3>(key1);
+                gtsam::Pose3 pose2 = values.at<gtsam::Pose3>(key2);
+
+                // Create points for the line
+                geometry_msgs::msg::Point p1, p2;
+                p1.x = pose1.translation().x();
+                p1.y = pose1.translation().y();
+                p1.z = pose1.translation().z();
+                p2.x = pose2.translation().x();
+                p2.y = pose2.translation().y();
+                p2.z = pose2.translation().z();
+
+                // Add the points to the edge marker
+                edge_marker.points.push_back(p1);
+                edge_marker.points.push_back(p2);
+            }
+        }
+    }
+
+    markers.markers.push_back(edge_marker);
 
     for (const auto &key_value : values) {
         gtsam::Key key = key_value.key;
@@ -147,6 +192,7 @@ void PoseGraph::publishSamMarkers(const gtsam::Values &values)
 
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = params_.fixed_frame;
+        marker.header.stamp = this->now();
         marker.id = key;
         marker.type = visualization_msgs::msg::Marker::ARROW;
         marker.action = visualization_msgs::msg::Marker::ADD;

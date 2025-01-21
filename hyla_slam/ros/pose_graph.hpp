@@ -32,8 +32,9 @@
 #include "hyla_slam_interfaces/srv/index_data.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
-#include <gtsam/nonlinear/Values.h>
 #include <gtsam/geometry/Pose3.h>
+#include <gtsam/nonlinear/Values.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
 
 namespace hyla_slam {
 
@@ -55,7 +56,7 @@ public:
 private:
     void receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg);
 
-    void publishSamMarkers(const gtsam::Values &values);
+    void publishSamMarkers(const gtsam::Values &values, const gtsam::NonlinearFactorGraph &graph);
 
     std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>> sub_;
 
