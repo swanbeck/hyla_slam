@@ -93,7 +93,7 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
             // add loop closures
             int recent_excluded {5};
             double min_closeness {0.0};
-            double max_closeness {3.0};
+            double max_closeness {2.0};
 
             std::size_t effective_size = (nodes_.size() > static_cast<size_t>(recent_excluded)) ? nodes_.size() - static_cast<size_t>(recent_excluded) : 0;
 
@@ -108,7 +108,7 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
                     // use this to add a factor to the graph
                     sam_->addLoopClosureFactor(guess, static_cast<int>(i));
 
-                    RCLCPP_INFO_STREAM(this->get_logger(), "Added loop closure between " << static_cast<int>(i) << " and new pose!");
+                    RCLCPP_DEBUG_STREAM(this->get_logger(), "Added loop closure between " << static_cast<int>(i) << " and new pose!");
                 }
             }
 
@@ -227,7 +227,7 @@ void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Reques
 
     // save map to disk or publish it or both
 
-    double leaf_size {0.07};
+    double leaf_size {0.2};
     pcl::PointCloud<pcl::PointXYZ>::Ptr output (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::VoxelGrid<pcl::PointXYZ> grid;
     grid.setLeafSize(leaf_size, leaf_size, leaf_size);
