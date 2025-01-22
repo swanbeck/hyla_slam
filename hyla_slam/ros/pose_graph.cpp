@@ -16,9 +16,14 @@ PoseGraph::PoseGraph(const rclcpp::NodeOptions &opts)
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
+    std::optional<rclcpp::QoS> sensor_data_qos {std::nullopt};
+    if (params_.best_effort_qos) {
+        sensor_data_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
+    }
+
     sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         params_.point_cloud_topic,
-        rclcpp::QoS(rclcpp::KeepLast(1)).reliable(),
+        sensor_data_qos.value_or(rclcpp::QoS(rclcpp::KeepLast(1)).reliable()),
         std::bind(&PoseGraph::receiveScan, this, std::placeholders::_1)
     );
 
@@ -113,18 +118,18 @@ void PoseGraph::receiveScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr 
             }
 
             // performing the optimization every so often
-            if (nodes_.size() % 10 == 0) {
-                auto opt_start {std::chrono::high_resolution_clock::now()};
-                RCLCPP_INFO(this->get_logger(), "Trying to optimize graph!");
-                auto values {sam_->optimize()};
-                auto opt_end {std::chrono::high_resolution_clock::now()};
-                std::chrono::duration<double, std::milli> opt_elapsed {opt_end - opt_start};
-                RCLCPP_INFO_STREAM(this->get_logger(), "Finished opt in " << opt_elapsed.count() << "ms");
+            // if (nodes_.size() % 10 == 0) {
+            //     auto opt_start {std::chrono::high_resolution_clock::now()};
+            //     RCLCPP_INFO(this->get_logger(), "Trying to optimize graph!");
+            //     auto values {sam_->optimize()};
+            //     auto opt_end {std::chrono::high_resolution_clock::now()};
+            //     std::chrono::duration<double, std::milli> opt_elapsed {opt_end - opt_start};
+            //     RCLCPP_INFO_STREAM(this->get_logger(), "Finished opt in " << opt_elapsed.count() << "ms");
 
-                // create markers for poses
-                auto graph {sam_->getGraph()};
-                publishSamMarkers(values, graph);
-            }
+            //     // create markers for poses
+            //     auto graph {sam_->getGraph()};
+            //     publishSamMarkers(values, graph);
+            // }
         }
     }
 
@@ -185,14 +190,14 @@ Sophus::SE3d PoseGraph::registerScans(const sensor_msgs::msg::PointCloud2::Const
 // TODO make a new function to generate the single map
 void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr map (new pcl::PointCloud<pcl::PointXYZ>);
+    hylacomylus::PointCloud::Ptr map (new hylacomylus::PointCloud);
 
     auto values {sam_->optimize()};
 
     for (int i = 0; i < nodes_.size(); ++i) {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr input_point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
         pcl::fromROSMsg(*(nodes_.at(i).scan), *input_point_cloud);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
 
         if (!values.exists<gtsam::Pose3>(i)) {
             continue;
@@ -227,17 +232,22 @@ void PoseGraph::generateMap(const std::shared_ptr<std_srvs::srv::Trigger::Reques
 
     // save map to disk or publish it or both
 
-    double leaf_size {0.2};
-    pcl::PointCloud<pcl::PointXYZ>::Ptr output (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::VoxelGrid<pcl::PointXYZ> grid;
-    grid.setLeafSize(leaf_size, leaf_size, leaf_size);
-    grid.setInputCloud(map);
-    grid.filter(*output);
+    // double leaf_size {0.2};
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr output (new pcl::PointCloud<pcl::PointXYZ>);
+    // pcl::VoxelGrid<pcl::PointXYZ> grid;
+    // grid.setLeafSize(leaf_size, leaf_size, leaf_size);
+    // grid.setInputCloud(map);
+    // grid.filter(*output);
 
     sensor_msgs::msg::PointCloud2 msg;
-    pcl::toROSMsg(*output, msg);
+    pcl::toROSMsg(*map, msg);
     msg.header.frame_id = params_.fixed_frame;
     cloud_pub_->publish(msg);
+
+    // save to disk
+    map->height = 1;
+    map->width = map->points.size();
+    pcl::io::savePCDFileBinary(std::filesystem::path(params_.mapping.data_dir).append("cloud.pcd"), *map);
     
     response->success = true;
 }

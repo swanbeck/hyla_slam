@@ -13,6 +13,8 @@
 #include <set>
 #include <filesystem>
 
+#include <pcl/io/pcd_io.h>
+
 // Custom
 #include "surface_repair_common/point_type.h"
 #include "utils.hpp"

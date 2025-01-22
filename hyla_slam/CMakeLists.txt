@@ -108,6 +108,12 @@ target_link_libraries(hyla_slam_behaviors_node
 add_executable(gtsam_test ros/gtsam_test.cpp)
 target_link_libraries(gtsam_test gtsam)
 
+add_executable(negative_information_filter ros/negative_information_filter.cpp)
+target_link_libraries(negative_information_filter
+    ${PCL_LIBRARIES}
+    hylacomylus
+)
+
 add_executable(pose_graph ros/pose_graph.cpp)
 ament_target_dependencies(pose_graph
     rclcpp
@@ -133,6 +139,7 @@ target_link_libraries(pose_graph
 install(TARGETS
     hyla_slam_behaviors_node
     gtsam_test
+    negative_information_filter
     pose_graph
     DESTINATION lib/${PROJECT_NAME}
 )
