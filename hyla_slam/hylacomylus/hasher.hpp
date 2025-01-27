@@ -15,6 +15,8 @@
 #include <map>
 
 #include <Eigen/Dense>
+#include <boost/multiprecision/cpp_int.hpp>
+using namespace boost::multiprecision;
 
 // Custom
 #include "chunk.hpp"
@@ -59,7 +61,7 @@ class ChunkHasher {
      * @param point point in space with x,y,z components
      * @return std::uint32_t hash corresponding to block in space
      */
-    std::uint64_t generateHash(const Point &point)
+    uint256_t generateHash(const Point &point)
     {
         return generateHash(Eigen::Vector3d(point.x, point.y, point.z));
     }
@@ -70,17 +72,17 @@ class ChunkHasher {
      * @param point point in space with x,y,z components
      * @return std::uint32_t hash corresponding to block in space
      */
-    std::uint64_t generateHash(const Eigen::Vector3d &point) 
+    uint256_t generateHash(const Eigen::Vector3d &point) 
     {
         std::uint8_t n0 {sign_hashes[{valueSign(point.x()), valueSign(point.y()), valueSign(point.z())}]};
         std::uint16_t n1 = valueMagnitude(point.x());
         std::uint16_t n2 = valueMagnitude(point.y());
         std::uint16_t n3 = valueMagnitude(point.z());
 
-        std::uint64_t hash = static_cast<std::uint64_t>(n0) |
-                            (static_cast<std::uint64_t>(n1) << 16) | 
-                            (static_cast<std::uint64_t>(n2) << 32) | 
-                            (static_cast<std::uint64_t>(n3) << 48);
+        uint256_t hash = static_cast<uint256_t>(n0) |
+                            (static_cast<uint256_t>(n1) << 16) | 
+                            (static_cast<uint256_t>(n2) << 32) | 
+                            (static_cast<uint256_t>(n3) << 48);
         return hash;
     }
 
@@ -92,7 +94,7 @@ class ChunkHasher {
      * 
      * @warning information about a point is lost when a hash is generated, so the exact point location cannot be recovered from a hash; instead only the neighborhood or voxel box that a point falls within can be recovered. Thus, this function is likely only useful for debugging purposes 
      */
-    Eigen::Vector3d parseHash(const std::uint64_t &hash)
+    Eigen::Vector3d parseHash(const uint256_t &hash)
     {
         Eigen::Vector3d p;
         std::uint8_t n0 {static_cast<std::uint8_t>(hash & 0xFF)};

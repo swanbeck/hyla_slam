@@ -5,6 +5,9 @@
 #include <chrono>
 #include <algorithm>
 
+#include <boost/multiprecision/cpp_int.hpp>
+using namespace boost::multiprecision;
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <pcl_conversions/pcl_conversions.h>
@@ -116,8 +119,8 @@ private:
     std::unique_ptr<Sophus::SE3d> localization_reference_pose_;
     std::unique_ptr<Sophus::SE3d> mapping_reference_pose_;
 
-    std::set<std::uint64_t> latest_hashes_;
-    std::set<std::uint64_t> localization_reference_hashes_;
+    std::set<uint256_t> latest_hashes_;
+    std::set<uint256_t> localization_reference_hashes_;
 
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_localization_displacement_server_;
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_mapping_displacement_server_;

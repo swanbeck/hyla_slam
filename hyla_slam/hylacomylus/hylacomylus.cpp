@@ -5,7 +5,7 @@ namespace hylacomylus {
 Hylacomylus::Hylacomylus(const MappingConfig &config)
 : config_(config), local_map_(new PointCloud)
 {
-    atlas_ = std::make_unique<std::map<std::uint64_t, Chunk>>();
+    atlas_ = std::make_unique<std::map<uint256_t, Chunk>>();
     hasher_ = std::make_unique<ChunkHasher>(config_.chunk_discretization);
     collection_history_ = std::make_unique<std::stack<MappingResult>>();
 
@@ -24,9 +24,9 @@ std::uint32_t Hylacomylus::generateTimeHash()
     return std::chrono::duration_cast<std::chrono::seconds>(durationSinceEpoch).count();
 }
 
-std::set<std::uint64_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length)
+std::set<uint256_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length)
 {
-    std::set<std::uint64_t> hashes;
+    std::set<uint256_t> hashes;
     double increment {static_cast<double>(config_.chunk_discretization) / 2};
     for (double i = (robot_pose.translation().x() - half_side_length); i < (robot_pose.translation().x() + half_side_length); i += increment) {
         for (double j = (robot_pose.translation().y() - half_side_length); j < (robot_pose.translation().y() + half_side_length); j += increment) {
@@ -38,7 +38,7 @@ std::set<std::uint64_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_p
     return hashes;
 }
 
-void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
+void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes)
 {
     // let's collect data associated with all hashes in memory
     for (const auto &hash : hashes) {
@@ -51,7 +51,7 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
     }
 
     // then let's iterate over the data in memory and clean it up
-    std::vector<std::uint64_t> erase_keys;
+    std::vector<uint256_t> erase_keys;
     for (auto &entry : *atlas_) {
         // if it's not in the hash set, let's get it ready to prune
         if (!(hashes.contains(entry.first))) {
@@ -66,7 +66,7 @@ void Hylacomylus::rescopeStorage(const std::set<std::uint64_t> &hashes)
     }
 }
 
-std::set<uint64_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
+std::set<uint256_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
 {
     auto data_hashes {indexData(cloud, robot_pose, config_.active_mapping)};
     auto recent_hashes {updateHashMemory(data_hashes)};
@@ -74,7 +74,7 @@ std::set<uint64_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3
     return recent_hashes;
 }
 
-void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<std::uint64_t>> &additional_hashes)
+void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes)
 {
     auto hashes {findLocalHashes(robot_pose, config_.half_side_length)};
     if (additional_hashes.has_value()) {
@@ -84,7 +84,7 @@ void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::opti
     composeLocalMap(hashes);
 }
 
-std::set<std::uint64_t> Hylacomylus::updateHashMemory(std::set<std::uint64_t> &hashes)
+std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes)
 {
     if (config_.recent_scan_memory == 0) { return hashes; }
 
@@ -94,7 +94,7 @@ std::set<std::uint64_t> Hylacomylus::updateHashMemory(std::set<std::uint64_t> &h
     }
 
     // now take union of all hashes in recent memory
-    std::set<uint64_t> recent_hashes;
+    std::set<uint256_t> recent_hashes;
     for (const auto &hash_set : hash_memory_) {
         recent_hashes.insert(hash_set.begin(), hash_set.end());
     }
@@ -102,15 +102,15 @@ std::set<std::uint64_t> Hylacomylus::updateHashMemory(std::set<std::uint64_t> &h
     return recent_hashes;
 }
 
-std::set<std::uint64_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data)
+std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data)
 {
     std::uint32_t collection_hash {Hylacomylus::generateTimeHash()};
-    std::set<std::uint64_t> data_hashes;
+    std::set<uint256_t> data_hashes;
 
     // assign all points to an entry in atlas
     for (std::size_t i = 0; i < cloud->points.size(); i++) {
 
-        std::uint64_t hash {hasher_->generateHash(cloud->points[i])};
+        uint256_t hash {hasher_->generateHash(cloud->points[i])};
         if (!(data_hashes.contains(hash))) {
             data_hashes.insert(hash);
         }
@@ -147,7 +147,7 @@ void Hylacomylus::dumpMemoryData()
     }
 }
 
-void Hylacomylus::composeLocalMap(const std::set<std::uint64_t> &hashes)
+void Hylacomylus::composeLocalMap(const std::set<uint256_t> &hashes)
 {
     local_map_->clear();
 

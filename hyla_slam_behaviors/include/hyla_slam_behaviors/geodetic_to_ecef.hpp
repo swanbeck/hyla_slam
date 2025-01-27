@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <iostream>
+#include <iomanip>
 #include <geometry_msgs/msg/point.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <behaviortree_cpp/action_node.h>
 
 namespace hyla_slam_behaviors {
 
-class ConstructPose : public BT::SyncActionNode
+class GeodeticToEcef : public BT::SyncActionNode
 {
 public:
-    ConstructPose(const std::string name, const BT::NodeConfig &config);
+    GeodeticToEcef(const std::string name, const BT::NodeConfig &config);
 
     static BT::PortsList providedPorts();
 
@@ -18,6 +20,8 @@ public:
 
 private:
 
-}; // class ConstructPose
+
+
+}; // class GeodeticToEcef
 
 } // namespace hyla_slam_behaviors

@@ -4,6 +4,9 @@
 #include <set>
 #include <Eigen/Dense>
 
+#include <boost/multiprecision/cpp_int.hpp>
+using namespace boost::multiprecision;
+
 namespace hylacomylus {
 
 struct MappingConfig
@@ -23,8 +26,8 @@ struct MappingConfig
 struct MappingResult
 {
     std::uint32_t collection_id;
-    std::set<std::uint64_t> hashes;
-    MappingResult(std::uint32_t stamp, std::set<std::uint64_t> hashset) : collection_id(stamp), hashes(hashset) 
+    std::set<uint256_t> hashes;
+    MappingResult(std::uint32_t stamp, std::set<uint256_t> hashset) : collection_id(stamp), hashes(hashset) 
     {}
 }; // struct MappingResult
 

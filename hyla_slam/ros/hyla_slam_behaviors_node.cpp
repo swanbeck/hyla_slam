@@ -278,9 +278,9 @@ void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces:
     }
 
     // compute Jaccard Similarity between sets
-    auto jaccard_similarity = [](const std::set<std::uint64_t> &s1, const std::set<std::uint64_t> &s2) -> double {
-        std::set<std::uint64_t> intersection_set;
-        std::set<std::uint64_t> union_set;
+    auto jaccard_similarity = [](const std::set<uint256_t> &s1, const std::set<uint256_t> &s2) -> double {
+        std::set<uint256_t> intersection_set;
+        std::set<uint256_t> union_set;
 
         std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
         std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));

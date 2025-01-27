@@ -7,7 +7,6 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
@@ -35,6 +34,7 @@ add_library(hyla_slam_behaviors STATIC
     src/construct_pose.cpp
     src/disable_localization.cpp
     src/enable_localization.cpp
+    src/geodetic_to_ecef.cpp
     src/get_localization_displacement.cpp
     src/get_map.cpp
     src/get_map_similarity.cpp
