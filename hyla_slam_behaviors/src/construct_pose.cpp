@@ -27,9 +27,9 @@ BT::NodeStatus ConstructPose::tick()
     double x, y, z;
     auto point_opt {getInput<geometry_msgs::msg::Point>("point")};
     if (point_opt.has_value()) {
-        x = point.value().x;
-        y = point.value().y;
-        z = point.value().z;
+        x = point_opt.value().x;
+        y = point_opt.value().y;
+        z = point_opt.value().z;
     } else {
         x = getInput<double>("x").value_or(0.0);
         y = getInput<double>("y").value_or(0.0);

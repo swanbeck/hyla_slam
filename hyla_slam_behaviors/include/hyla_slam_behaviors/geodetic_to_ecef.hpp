@@ -3,8 +3,9 @@
 #include <memory>
 #include <iostream>
 #include <iomanip>
-#include <geometry_msgs/msg/point.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
+#include <Eigen/Dense>
+#include <cmath>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <behaviortree_cpp/action_node.h>
 
 namespace hyla_slam_behaviors {

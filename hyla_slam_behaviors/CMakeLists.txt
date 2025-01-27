@@ -15,9 +15,11 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(hyla_slam_interfaces REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 include_directories(
     include
+    ${EIGEN3_INCLUDE_DIR}
 )
 
 set(BEHAVIOR_TREE_DEPS 
@@ -28,6 +30,7 @@ set(BEHAVIOR_TREE_DEPS
     sensor_msgs
     visualization_msgs
     hyla_slam_interfaces
+    Eigen3
 )
 
 add_library(hyla_slam_behaviors STATIC

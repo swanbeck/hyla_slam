@@ -34,7 +34,6 @@ find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(hyla_slam_interfaces REQUIRED)
-# find_package(Boost REQUIRED COMPONENTS multiprecision)
 find_package(Boost REQUIRED)
 
 include(FetchContent)
