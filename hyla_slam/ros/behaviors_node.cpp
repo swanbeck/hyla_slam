@@ -21,6 +21,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.active_mapping = mapping_params.active_mapping;
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
     mapping_config_.recent_scan_memory = mapping_params.recent_scan_memory;
+    mapping_config_.voxel_size = mapping_params.voxel_size;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
@@ -239,14 +240,13 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
 
     // save the raw cloud to disk
     if (params_.mapping.save_raw_scans) {
-        mapper_->saveRawCloud(input_point_cloud, collection_id);
+        mapper_->saveRawScan(input_point_cloud, collection_id);
     }
 
-    // // save voxelized version to disk
-    // if (params_.mapping.save_voxelized_scans) {
-    //     hylacomylus::PointCloud::Ptr voxelized_cloud {kiss_icp_ros::utils::voxelizeCloud(input_point_cloud, params_.mapping.voxel_size)};
-    //     mapper_->saveRawCloud(voxelized_cloud, collection_id);
-    // }
+    // save voxelized version to disk
+    if (params_.mapping.save_voxelized_scans) {
+        mapper_->saveRawScan(input_point_cloud, collection_id, true);
+    }
     
     hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
 

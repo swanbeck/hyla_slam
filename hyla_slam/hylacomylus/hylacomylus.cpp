@@ -18,7 +18,7 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
         std::filesystem::create_directories(chunk_path_);
     }
 
-    raw_path_ = std::filesystem::path(config.data_dir).append("raw_scans");
+    raw_path_ = std::filesystem::path(config.data_dir).append("scans");
     if (!(std::filesystem::exists(raw_path_))) {
         std::filesystem::create_directories(raw_path_);
     }
@@ -126,7 +126,7 @@ std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes)
     return recent_hashes;
 }
 
-void Hylacomylus::saveRawCloud(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id)
+void Hylacomylus::saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize)
 {
     std::uint32_t collection_hash {};
     if (collection_id.has_value()) {
@@ -136,9 +136,29 @@ void Hylacomylus::saveRawCloud(PointCloud::Ptr &cloud, const std::optional<std::
     }
 
     // save to disk
-    auto save_path {raw_path_.append(std::to_string(collection_hash) + ".pcd")};
+    std::filesystem::path save_path;
+    if (voxelize) {
+        save_path = vox_scan_path_ / (std::to_string(collection_hash) + ".pcd");
+    } else {
+        save_path = raw_path_ / (std::to_string(collection_hash) + ".pcd");
+    }
 
-    if (!utils::checkFileExistence(save_path)) {
+    if (utils::checkFileExistence(save_path)) {
+        std::cout << "[WARN] file " << save_path << " already exists!" << std::endl;
+        return; 
+    }
+    
+    // conditionally downsample
+    if (voxelize) {
+        pcl::VoxelGrid<Point> sor;
+        sor.setInputCloud(cloud);
+        sor.setLeafSize(config_.voxel_size, config_.voxel_size, config_.voxel_size);
+        PointCloud::Ptr voxelized_cloud (new PointCloud);
+        sor.filter(*voxelized_cloud);
+        pcl::io::savePCDFileBinary(save_path.string(), *voxelized_cloud);
+    } else {
+        cloud->height = 1;
+        cloud->width = cloud->points.size();
         pcl::io::savePCDFileBinary(save_path.string(), *cloud);
     }
 }

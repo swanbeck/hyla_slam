@@ -21,6 +21,8 @@ struct MappingConfig
     bool active_mapping;
     bool persist_recent_chunks;
     int recent_scan_memory;
+
+    float voxel_size;
 }; // struct MappingConfig
 
 struct MappingResult

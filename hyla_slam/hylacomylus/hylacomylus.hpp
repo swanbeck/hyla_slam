@@ -47,7 +47,7 @@ public:
 
     PointCloud::Ptr map();
 
-    void saveRawCloud(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id);
+    void saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize=false);
 
 private:
     std::uint32_t generateTimeHash();

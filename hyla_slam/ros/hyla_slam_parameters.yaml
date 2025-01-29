@@ -86,6 +86,26 @@ hyla_slam:
       description: "Data associated with last n scans will be maintained in map even if it exceeds the set half_side_length; meant to enable more reliable localization when using a small local map in a large environment"
       validation:
         gt_eq<>: 0
+    
+    save_voxelized_scans:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Saves voxelized scans to disk when indexed; useful for offline map generation and pose graph reconstruction"
+    
+    voxel_size:
+      type: double
+      read_only: true
+      default_value: 0.25
+      description: "Size of voxels used for voxelized versions of saved raw clouds and chunks"
+      validation:
+        gt<>: 0.0
+    
+    generate_voxelized_chunks:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Indicates whether voxelized versions of chunks are generated and saved to disk; useful for hierarchical map representations"
 
   localization:
     voxel_size:
