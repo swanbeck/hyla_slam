@@ -1,4 +1,4 @@
-#include "hyla_slam_behaviors_node.hpp"
+#include "behaviors_node.hpp"
 
 namespace hyla_slam {
 
@@ -16,7 +16,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.fixed_frame = params_.fixed_frame;
     mapping_config_.robot_frame = params_.robot_frame;
     mapping_config_.chunk_discretization = mapping_params.chunk_discretization;
-    mapping_config_.chunk_load_dir = mapping_params.data_dir;
+    mapping_config_.data_dir = mapping_params.data_dir;
     mapping_config_.half_side_length = mapping_params.half_side_length;
     mapping_config_.active_mapping = mapping_params.active_mapping;
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
@@ -230,9 +230,23 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
         map_lidar_estimate = localizer_->pose();
     }
 
+    // use the header to generate a hash
+    auto collection_id {static_cast<std::uint32_t>(request->cloud.header.stamp.sec % UINT32_MAX)};
+
     // transform cloud (using request transform if provided)
     hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
     pcl::fromROSMsg(request->cloud, *input_point_cloud);
+
+    // save the raw cloud to disk
+    if (params_.mapping.save_raw_scans) {
+        mapper_->saveRawCloud(input_point_cloud, collection_id);
+    }
+
+    // // save voxelized version to disk
+    // if (params_.mapping.save_voxelized_scans) {
+    //     hylacomylus::PointCloud::Ptr voxelized_cloud {kiss_icp_ros::utils::voxelizeCloud(input_point_cloud, params_.mapping.voxel_size)};
+    //     mapper_->saveRawCloud(voxelized_cloud, collection_id);
+    // }
     
     hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
 

@@ -15,7 +15,7 @@ struct MappingConfig
     std::string robot_frame;
     
     int chunk_discretization;
-    std::string chunk_load_dir;
+    std::string data_dir;
     double half_side_length;
 
     bool active_mapping;

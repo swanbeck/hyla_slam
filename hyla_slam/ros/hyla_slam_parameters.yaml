@@ -44,6 +44,12 @@ hyla_slam:
       description: "Directory where data will be written to and read from disk"
       validation:
         not_empty<>: []
+    
+    save_raw_scans:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Saves raw scans to disk when indexed; useful for offline map generation and pose graph reconstruction"
 
     chunk_discretization:
       type: int

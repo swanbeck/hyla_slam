@@ -36,7 +36,6 @@ struct Chunk {
     Chunk(uint256_t handle, std::string root_dir) : id(handle), dir(root_dir), loaded(false), chunk(new PointCloud) {};
 
     std::string getFileAddress() {
-        // return std::filesystem::path(dir).append(std::to_string(id) + ".pcd");
         std::ostringstream oss;
         oss << id; // Convert uint256_t to a string
         return std::filesystem::path(dir).append(oss.str() + ".pcd");

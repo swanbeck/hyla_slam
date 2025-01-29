@@ -47,6 +47,8 @@ public:
 
     PointCloud::Ptr map();
 
+    void saveRawCloud(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id);
+
 private:
     std::uint32_t generateTimeHash();
 
@@ -54,7 +56,7 @@ private:
 
     void rescopeStorage(const std::set<uint256_t> &hashes);
     
-    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data);
+    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash=std::nullopt);
 
     void composeLocalMap(const std::set<uint256_t> &hashes);
 
@@ -68,7 +70,7 @@ private:
 
 private:
     MappingConfig config_;
-    std::unique_ptr<ChunkHasher> hasher_;
+    ChunkHasher hasher_;
     std::unique_ptr<std::map<uint256_t, Chunk>> atlas_;
     std::unique_ptr<std::stack<MappingResult>> collection_history_;
     PointCloud::Ptr local_map_;
@@ -76,6 +78,11 @@ private:
     std::deque<std::set<uint256_t>> hash_memory_;
     std::set<uint256_t> most_recent_hash_set_;
     std::set<uint256_t> last_update_hash_set_;
+
+    std::filesystem::path chunk_path_;
+    std::filesystem::path raw_path_;
+    std::filesystem::path vox_chunk_path_;
+    std::filesystem::path vox_scan_path_;
 
 }; // class Hylacomylus
 

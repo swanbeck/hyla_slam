@@ -76,8 +76,8 @@ generate_parameter_library(
     ros/hyla_slam_parameters.yaml
 )
 
-add_executable(hyla_slam_behaviors_node ros/hyla_slam_behaviors_node.cpp)
-ament_target_dependencies(hyla_slam_behaviors_node
+add_executable(behaviors_node ros/behaviors_node.cpp)
+ament_target_dependencies(behaviors_node
     rclcpp
     geometry_msgs
     sensor_msgs
@@ -87,7 +87,7 @@ ament_target_dependencies(hyla_slam_behaviors_node
     std_srvs
     hyla_slam_interfaces
 )
-target_link_libraries(hyla_slam_behaviors_node
+target_link_libraries(behaviors_node
     ${PCL_LIBRARIES}
     hylacomylus
     hyla_kiss
@@ -95,7 +95,7 @@ target_link_libraries(hyla_slam_behaviors_node
 )
 
 install(TARGETS
-    hyla_slam_behaviors_node
+    behaviors_node
     DESTINATION lib/${PROJECT_NAME}
 )
 
