@@ -101,11 +101,17 @@ hyla_slam:
       validation:
         gt<>: 0.0
     
-    generate_voxelized_chunks:
+    maintain_voxelized_chunks:
       type: bool
       read_only: true
       default_value: false
       description: "Indicates whether voxelized versions of chunks are generated and saved to disk; useful for hierarchical map representations"
+    
+    maintain_raw_chunks:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Indicates whether raw versions of chunks are generated and saved to disk; useful for maintaining dense data while keeping memory usage low"
 
   localization:
     voxel_size:

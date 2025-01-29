@@ -23,6 +23,9 @@ struct MappingConfig
     int recent_scan_memory;
 
     float voxel_size;
+
+    bool maintain_raw_chunks;
+    bool maintain_voxelized_chunks;
 }; // struct MappingConfig
 
 struct MappingResult

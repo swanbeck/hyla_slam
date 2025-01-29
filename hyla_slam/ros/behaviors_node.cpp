@@ -22,6 +22,8 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
     mapping_config_.recent_scan_memory = mapping_params.recent_scan_memory;
     mapping_config_.voxel_size = mapping_params.voxel_size;
+    mapping_config_.maintain_raw_chunks = mapping_params.maintain_raw_chunks;
+    mapping_config_.maintain_voxelized_chunks = mapping_params.maintain_voxelized_chunks;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
