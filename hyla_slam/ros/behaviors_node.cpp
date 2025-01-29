@@ -232,7 +232,9 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     }
 
     // use the header to generate a hash
-    auto collection_id {static_cast<std::uint32_t>(request->cloud.header.stamp.sec % UINT32_MAX)};
+    // auto collection_id {static_cast<std::uint32_t>(request->cloud.header.stamp.sec % UINT32_MAX)};
+
+    auto collection_id {mapper_->generateTimeHash()};
 
     // transform cloud (using request transform if provided)
     hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);

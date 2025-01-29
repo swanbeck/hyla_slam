@@ -96,7 +96,7 @@ hyla_slam:
     voxel_size:
       type: double
       read_only: true
-      default_value: 0.25
+      default_value: 0.3
       description: "Size of voxels used for voxelized versions of saved raw clouds and chunks"
       validation:
         gt<>: 0.0

@@ -49,8 +49,9 @@ public:
 
     void saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize=false);
 
-private:
     std::uint32_t generateTimeHash();
+
+private:
 
     std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
 
