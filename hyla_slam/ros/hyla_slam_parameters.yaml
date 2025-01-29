@@ -110,7 +110,7 @@ hyla_slam:
     maintain_raw_chunks:
       type: bool
       read_only: true
-      default_value: false
+      default_value: true
       description: "Indicates whether raw versions of chunks are generated and saved to disk; useful for maintaining dense data while keeping memory usage low"
 
   localization:

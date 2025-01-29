@@ -57,7 +57,7 @@ private:
 
     std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
 
-    void rescopeStorage(const std::set<uint256_t> &hashes, std::map<uint256_t, Chunk> &atlas);
+    void rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
     
     std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash=std::nullopt);
 
@@ -83,6 +83,9 @@ private:
     std::deque<std::set<uint256_t>> hash_memory_;
     std::set<uint256_t> most_recent_hash_set_;
     std::set<uint256_t> last_update_hash_set_;
+    
+    std::set<uint256_t> dense_hashes_;
+    std::set<uint256_t> sparse_hashes_;
 
     std::filesystem::path chunk_path_;
     std::filesystem::path raw_path_;

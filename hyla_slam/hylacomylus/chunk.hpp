@@ -12,6 +12,7 @@
 // CPP
 #include <set>
 #include <sstream>
+#include <optional>
 #include <filesystem>
 #include <boost/multiprecision/cpp_int.hpp>
 using namespace boost::multiprecision;
@@ -31,9 +32,13 @@ struct Chunk {
     const std::string dir;
     // const std::string frame;
     bool loaded;
+    bool sparse;
+    float leaf_size;
     PointCloud::Ptr chunk;
 
-    Chunk(uint256_t handle, std::string root_dir) : id(handle), dir(root_dir), loaded(false), chunk(new PointCloud) {};
+    Chunk(uint256_t handle, std::string root_dir, bool is_sparse=false, std::optional<float> leaf=std::nullopt) : id(handle), dir(root_dir), loaded(false), sparse(is_sparse), chunk(new PointCloud) {
+        leaf_size = leaf.value_or(0.1);
+    };
 
     std::string getFileAddress() {
         std::ostringstream oss;
@@ -67,12 +72,26 @@ struct Chunk {
                 *chunk += *existing;
             }
         }
+
+        // if chunk is sparse, downsample it
+        if (sparse) {
+            downsampleChunk();
+        }
+
         // finally, write the chunk to disk
         chunk->height = 1;
         chunk->width = chunk->points.size();
         pcl::io::savePCDFileBinary(Chunk::getFileAddress(), *chunk);
         chunk = std::make_shared<PointCloud>();
         loaded = false;
+    }
+    void downsampleChunk() {
+        pcl::VoxelGrid<Point> sor;
+        sor.setInputCloud(chunk);
+        sor.setLeafSize(leaf_size, leaf_size, leaf_size);
+        PointCloud::Ptr voxelized_cloud (new PointCloud);
+        sor.filter(*voxelized_cloud);
+        *chunk = *voxelized_cloud;
     }
 }; // struct Chunk
 

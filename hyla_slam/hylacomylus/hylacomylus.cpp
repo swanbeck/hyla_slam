@@ -63,30 +63,83 @@ std::set<uint256_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose,
     return hashes;
 }
 
-void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, std::map<uint256_t, Chunk> &atlas)
+// void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, std::map<uint256_t, Chunk> &atlas)
+// {
+//     // let's collect data associated with all hashes in memory
+//     for (const auto &hash : hashes) {
+//         // if atlas doesn't contain the hash, let's add it then load it
+//         if (!(atlas.contains(hash))) {
+//             atlas.insert({hash, Chunk(hash, chunk_path_.string())});
+//         }
+//         atlas.at(hash).loadChunk();
+//     }
+
+//     // then let's iterate over the data in memory and clean it up
+//     std::vector<uint256_t> erase_keys;
+//     for (auto &entry : atlas) {
+//         // if it's not in the hash set, let's get it ready to prune
+//         if (!(hashes.contains(entry.first))) {
+//             entry.second.unloadChunk();
+//             erase_keys.push_back(entry.first);
+//         }
+//     }
+
+//     // now actually prune the marked 
+//     for (const auto &key : erase_keys) {
+//         atlas.erase(key);
+//     }
+// }
+
+void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes)
 {
-    // let's collect data associated with all hashes in memory
     for (const auto &hash : hashes) {
         // if atlas doesn't contain the hash, let's add it then load it
-        if (!(atlas.contains(hash))) {
-            atlas.insert({hash, Chunk(hash, chunk_path_.string())});
+        if (!(dense_atlas_->contains(hash))) {
+            dense_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
         }
-        atlas.at(hash).loadChunk();
+        dense_atlas_->at(hash).loadChunk();
+
+        if (!(sparse_atlas_->contains(hash))) {
+            sparse_atlas_->insert({hash, Chunk(hash, vox_chunk_path_.string(), true, config_.voxel_size)});
+        }
+        sparse_atlas_->at(hash).loadChunk();
     }
 
     // then let's iterate over the data in memory and clean it up
-    std::vector<uint256_t> erase_keys;
-    for (auto &entry : atlas) {
+    std::vector<uint256_t> dense_erase_keys;
+    for (auto &entry : *dense_atlas_) {
         // if it's not in the hash set, let's get it ready to prune
         if (!(hashes.contains(entry.first))) {
             entry.second.unloadChunk();
-            erase_keys.push_back(entry.first);
+            dense_erase_keys.push_back(entry.first);
         }
     }
 
     // now actually prune the marked 
-    for (const auto &key : erase_keys) {
-        atlas.erase(key);
+    for (const auto &key : dense_erase_keys) {
+        dense_atlas_->erase(key);
+    }
+
+    if (additional_hashes.has_value()) {
+        for (const auto &hash : additional_hashes.value()) {
+            if (!(sparse_atlas_->contains(hash))) {
+                sparse_atlas_->insert({hash, Chunk(hash, vox_chunk_path_.string(), true, config_.voxel_size)});
+            }
+            sparse_atlas_->at(hash).loadChunk();
+        }
+    }
+
+    std::vector<uint256_t> sparse_erase_keys;
+    for (auto &entry : *sparse_atlas_) {
+        // if it's not in the hash set, let's get it ready to prune
+        if (!(hashes.contains(entry.first)) && !(additional_hashes.has_value() && additional_hashes.value().contains(entry.first))) {
+            entry.second.unloadChunk();
+            sparse_erase_keys.push_back(entry.first);
+        }
+    }
+
+    for (const auto &key : sparse_erase_keys) {
+        sparse_atlas_->erase(key);
     }
 }
 
@@ -102,14 +155,15 @@ void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::opti
 {
     auto local_hashes {findLocalHashes(robot_pose, config_.half_side_length)};
 
-    if (config_.maintain_raw_chunks) {
-        rescopeStorage(local_hashes, *dense_atlas_);
-    }
-    if (config_.maintain_voxelized_chunks) {
-        auto hashes {local_hashes};
-        hashes.insert(additional_hashes->begin(), additional_hashes->end());
-        rescopeStorage(hashes, *sparse_atlas_);
-    }
+    // if (config_.maintain_raw_chunks) {
+        // rescopeStorage(local_hashes, *dense_atlas_);
+    // }
+    // if (config_.maintain_voxelized_chunks) {
+        // auto hashes {local_hashes};
+        // hashes.insert(additional_hashes->begin(), additional_hashes->end());
+        // rescopeStorage(hashes, *sparse_atlas_);
+    // }
+    rescopeStorage(local_hashes, additional_hashes);
     composeLocalMap(local_hashes, additional_hashes);
 }
 
@@ -201,7 +255,7 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
             }
 
             if (!(sparse_atlas_->contains(hash))) {
-                sparse_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
+                sparse_atlas_->insert({hash, Chunk(hash, vox_chunk_path_.string(), true, config_.voxel_size)});
                 sparse_atlas_->at(hash).loadChunk();
             }
 
@@ -243,7 +297,7 @@ void Hylacomylus::composeLocalMap(const std::set<uint256_t> &local_hashes, const
         *dense_local_map_ += *(dense_atlas_->at(hash).chunk);
 
         if (!(sparse_atlas_->contains(hash))) {
-            sparse_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
+            sparse_atlas_->insert({hash, Chunk(hash, vox_chunk_path_.string(), true, config_.voxel_size)});
         }
         sparse_atlas_->at(hash).loadChunk();
         *sparse_local_map_ += *(sparse_atlas_->at(hash).chunk);
@@ -253,7 +307,7 @@ void Hylacomylus::composeLocalMap(const std::set<uint256_t> &local_hashes, const
 
     for (const auto &hash : additional_hashes.value()) {
         if (!(sparse_atlas_->contains(hash))) {
-            sparse_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
+            sparse_atlas_->insert({hash, Chunk(hash, vox_chunk_path_.string())});
         }
         sparse_atlas_->at(hash).loadChunk();
         *sparse_local_map_ += *(sparse_atlas_->at(hash).chunk);
