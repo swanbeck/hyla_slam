@@ -116,8 +116,8 @@ private:
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> disable_localization_server_;
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> unload_data_server_;
 
-    std::unique_ptr<Sophus::SE3d> localization_reference_pose_;
-    std::unique_ptr<Sophus::SE3d> mapping_reference_pose_;
+    std::optional<Sophus::SE3d> localization_reference_pose_;
+    std::optional<Sophus::SE3d> mapping_reference_pose_;
 
     std::set<uint256_t> latest_hashes_;
     std::set<uint256_t> localization_reference_hashes_;

@@ -189,7 +189,7 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
 
     hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
     localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
-    localization_reference_pose_ = std::make_unique<Sophus::SE3d>(map_lidar_estimate);
+    localization_reference_pose_ = map_lidar_estimate;
 
     // get map from mapper
     auto map {mapper_->map()};
@@ -235,19 +235,16 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
 
     // use the header to generate a hash
     // auto collection_id {static_cast<std::uint32_t>(request->cloud.header.stamp.sec % UINT32_MAX)};
-
     auto collection_id {mapper_->generateTimeHash()};
 
     // transform cloud (using request transform if provided)
     hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
     pcl::fromROSMsg(request->cloud, *input_point_cloud);
 
-    // save the raw cloud to disk
     if (params_.mapping.save_raw_scans) {
         mapper_->saveRawScan(input_point_cloud, collection_id);
     }
 
-    // save voxelized version to disk
     if (params_.mapping.save_voxelized_scans) {
         mapper_->saveRawScan(input_point_cloud, collection_id, true);
     }
@@ -274,12 +271,15 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     }
 
     pcl::transformPointCloudWithNormals(*input_point_cloud, *transformed_point_cloud, transform.matrix());
+    
+    // update the mapper with the projected pose
+    latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
 
     // index data in mapper
-    latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
+    // latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
     
     // update mapping reference pose
-    mapping_reference_pose_ = std::make_unique<Sophus::SE3d>(transform);
+    mapping_reference_pose_ = transform;
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Data indexed to existing map! Updated map has " << mapper_->map()->points.size() << " points.");
 
@@ -328,7 +328,20 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     }
 
     hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
-    mapper_->update(dummy_cloud, current_pose);
+
+    // compute the transform between the last mapping reference pose and the current pose
+    std::optional<Sophus::SE3d> projected_pose {std::nullopt};
+    if (mapping_reference_pose_.has_value()) {
+        Sophus::SE3d delta {mapping_reference_pose_.value().inverse() * current_pose};
+
+        // project the current_pose forward
+        projected_pose = current_pose * delta;
+
+        std::cout << "Current:\n" << current_pose.matrix() << std::endl;
+        std::cout << "Projected:\n" << projected_pose.value().matrix() << std::endl;
+    }
+
+    mapper_->update(dummy_cloud, current_pose, projected_pose);
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;
@@ -348,13 +361,13 @@ void BehaviorsNode::getDisplacement(const Capability capability, std::shared_ptr
     Sophus::SE3d reference_pose;
     switch (capability) {
         case (Capability::LOCALIZATION): {
-            if (localization_reference_pose_ == nullptr) { return; }
-            reference_pose = *localization_reference_pose_;
+            if (!(localization_reference_pose_.has_value())) { return; }
+            reference_pose = localization_reference_pose_.value();
             break;
         }
         case (Capability::MAPPING): {
-            if (mapping_reference_pose_ == nullptr) { return; }
-            reference_pose = *mapping_reference_pose_;
+            if (!(mapping_reference_pose_.has_value())) { return; }
+            reference_pose = mapping_reference_pose_.value();
             break;
         }
         default: {
@@ -475,8 +488,8 @@ void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Req
     mapper_->dumpMemoryData();
     std::string msg {"Unloaded data in memory to disk!"};
     RCLCPP_INFO(this->get_logger(), msg.c_str());
-    localization_reference_pose_ = nullptr;
-    mapping_reference_pose_ = nullptr;
+    localization_reference_pose_ = std::nullopt;
+    mapping_reference_pose_ = std::nullopt;
     response->success = true;
     response->message = msg;
 }

@@ -48,17 +48,33 @@ std::uint32_t Hylacomylus::generateTimeHash()
     return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(durationSinceEpoch).count() % UINT32_MAX);
 }
 
-std::set<uint256_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length)
+std::set<uint256_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose)
 {
     std::set<uint256_t> hashes;
     double increment {static_cast<double>(config_.chunk_discretization) / 2};
-    for (double i = (robot_pose.translation().x() - half_side_length); i < (robot_pose.translation().x() + half_side_length); i += increment) {
-        for (double j = (robot_pose.translation().y() - half_side_length); j < (robot_pose.translation().y() + half_side_length); j += increment) {
-            for (double k = (robot_pose.translation().z() - half_side_length); k < (robot_pose.translation().z() + half_side_length); k += increment) {
-                hashes.insert(hasher_.generateHash(Eigen::Vector3d(i, j, k)));
+
+    Eigen::Vector3d foci1 = robot_pose.translation();
+    Eigen::Vector3d foci2 = projected_pose.has_value() ? projected_pose.value().translation() + 3 * (projected_pose.value().translation() - robot_pose.translation()) : foci1;
+
+    Eigen::Vector3d midpoint = (foci1 + foci2) / 2;
+    const double a = std::max(config_.half_side_length, (foci1 - foci2).norm() / 2);
+
+    std::cout << "Using " << a << "; " << (foci1 - foci2).norm() / 2 << " -> " << foci1.transpose() << "; " << foci2.transpose() << std::endl;
+
+    for (double i = (midpoint.x() - a); i < (midpoint.x() + a); i += increment) {
+        for (double j = (midpoint.y() - a); j < (midpoint.y() + a); j += increment) {
+            for (double k = (midpoint.z() - a); k < (midpoint.z() + a); k += increment) {
+                Eigen::Vector3d point(i, j, k);
+                double distance1 = (point - foci1).norm();
+                double distance2 = (point - foci2).norm();
+                if (distance1 + distance2 <= 2 * a) {
+                    hashes.insert(hasher_.generateHash(point));
+                }
             }
         }
     }
+
+    std::cout << "Local hashes: " << hashes.size() << std::endl;
     return hashes;
 }
 
@@ -110,17 +126,17 @@ void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, const std::o
     }
 }
 
-std::set<uint256_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose)
+std::set<uint256_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose)
 {
     auto data_hashes {indexData(cloud, robot_pose, config_.active_mapping)};
     auto recent_hashes {updateHashMemory(data_hashes)};
-    updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(recent_hashes) : std::nullopt);
+    updateLocalMap(robot_pose, config_.persist_recent_chunks ? std::optional(recent_hashes) : std::nullopt, projected_pose);
     return recent_hashes;
 }
 
-void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes)
+void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes, const std::optional<Sophus::SE3d> &projected_pose)
 {
-    auto local_hashes {findLocalHashes(robot_pose, config_.half_side_length)};
+    auto local_hashes {findLocalHashes(robot_pose, projected_pose)};
     rescopeStorage(local_hashes, additional_hashes);
     composeLocalMap(local_hashes, additional_hashes);
 }

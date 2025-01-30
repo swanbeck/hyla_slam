@@ -38,7 +38,7 @@ public:
     Hylacomylus(const MappingConfig &config);
     ~Hylacomylus();
 
-    std::set<uint256_t> update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose);
+    std::set<uint256_t> update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     void dumpMemoryData();
 
     PointCloud::Ptr map();
@@ -49,12 +49,12 @@ public:
     std::uint32_t generateTimeHash();
 
 private:
-    std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
+    std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     void rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
     std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash=std::nullopt);
     void composeLocalMap(const std::set<uint256_t> &local_hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
     std::set<uint256_t> updateHashMemory(std::set<uint256_t> &hashes);
-    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes=std::nullopt);
+    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
 
     /*
     void deleteLastData();
