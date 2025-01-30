@@ -13,7 +13,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-// #include <pcl_conversions/pcl_conversions.h>
 
 #include <Eigen/Dense>
 #include <sophus/se3.hpp>
@@ -23,7 +22,6 @@
 using namespace boost::multiprecision;
 
 #include "surface_repair_common/point_type.h"
-// #include "surface_repair_common/utils.hpp"
 
 #include "chunk.hpp"
 #include "hasher.hpp"
@@ -38,11 +36,9 @@ class Hylacomylus
 {
 public:
     Hylacomylus(const MappingConfig &config);
-
     ~Hylacomylus();
 
     std::set<uint256_t> update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose);
-
     void dumpMemoryData();
 
     PointCloud::Ptr map();
@@ -50,26 +46,20 @@ public:
     PointCloud::Ptr sparseMap();
 
     void saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize=false);
-
     std::uint32_t generateTimeHash();
 
 private:
-
     std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const float &half_side_length);
-
     void rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
-    
     std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash=std::nullopt);
-
     void composeLocalMap(const std::set<uint256_t> &local_hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
-
-    // void deleteLastData();
-
-    // void deleteMappingResult(const MappingResult &result);
-
     std::set<uint256_t> updateHashMemory(std::set<uint256_t> &hashes);
-
     void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes=std::nullopt);
+
+    /*
+    void deleteLastData();
+    void deleteMappingResult(const MappingResult &result);
+    */
 
 private:
     MappingConfig config_;
@@ -91,7 +81,6 @@ private:
     std::filesystem::path raw_path_;
     std::filesystem::path vox_chunk_path_;
     std::filesystem::path vox_scan_path_;
-
 }; // class Hylacomylus
 
 } // namespace hylacomylus

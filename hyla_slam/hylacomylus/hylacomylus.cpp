@@ -9,7 +9,6 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     sparse_atlas_ = std::make_unique<std::map<uint256_t, Chunk>>();
     collection_history_ = std::make_unique<std::stack<MappingResult>>();
 
-    // create directories using path
     if (!(std::filesystem::exists(config.data_dir))) {
         std::filesystem::create_directories(config.data_dir);
     }
@@ -44,7 +43,7 @@ Hylacomylus::~Hylacomylus()
 
 std::uint32_t Hylacomylus::generateTimeHash()
 {
-    std::chrono::system_clock::time_point currentTime = std::chrono::system_clock::now();
+    auto currentTime = std::chrono::system_clock::now();
     auto durationSinceEpoch = currentTime.time_since_epoch();
     return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(durationSinceEpoch).count() % UINT32_MAX);
 }
@@ -63,37 +62,9 @@ std::set<uint256_t> Hylacomylus::findLocalHashes(const Sophus::SE3d &robot_pose,
     return hashes;
 }
 
-// void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, std::map<uint256_t, Chunk> &atlas)
-// {
-//     // let's collect data associated with all hashes in memory
-//     for (const auto &hash : hashes) {
-//         // if atlas doesn't contain the hash, let's add it then load it
-//         if (!(atlas.contains(hash))) {
-//             atlas.insert({hash, Chunk(hash, chunk_path_.string())});
-//         }
-//         atlas.at(hash).loadChunk();
-//     }
-
-//     // then let's iterate over the data in memory and clean it up
-//     std::vector<uint256_t> erase_keys;
-//     for (auto &entry : atlas) {
-//         // if it's not in the hash set, let's get it ready to prune
-//         if (!(hashes.contains(entry.first))) {
-//             entry.second.unloadChunk();
-//             erase_keys.push_back(entry.first);
-//         }
-//     }
-
-//     // now actually prune the marked 
-//     for (const auto &key : erase_keys) {
-//         atlas.erase(key);
-//     }
-// }
-
 void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes)
 {
     for (const auto &hash : hashes) {
-        // if atlas doesn't contain the hash, let's add it then load it
         if (!(dense_atlas_->contains(hash))) {
             dense_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
         }
@@ -105,17 +76,14 @@ void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, const std::o
         sparse_atlas_->at(hash).loadChunk();
     }
 
-    // then let's iterate over the data in memory and clean it up
     std::vector<uint256_t> dense_erase_keys;
     for (auto &entry : *dense_atlas_) {
-        // if it's not in the hash set, let's get it ready to prune
         if (!(hashes.contains(entry.first))) {
             entry.second.unloadChunk();
             dense_erase_keys.push_back(entry.first);
         }
     }
 
-    // now actually prune the marked 
     for (const auto &key : dense_erase_keys) {
         dense_atlas_->erase(key);
     }
@@ -131,7 +99,6 @@ void Hylacomylus::rescopeStorage(const std::set<uint256_t> &hashes, const std::o
 
     std::vector<uint256_t> sparse_erase_keys;
     for (auto &entry : *sparse_atlas_) {
-        // if it's not in the hash set, let's get it ready to prune
         if (!(hashes.contains(entry.first)) && !(additional_hashes.has_value() && additional_hashes.value().contains(entry.first))) {
             entry.second.unloadChunk();
             sparse_erase_keys.push_back(entry.first);
@@ -154,15 +121,6 @@ std::set<uint256_t> Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE
 void Hylacomylus::updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes)
 {
     auto local_hashes {findLocalHashes(robot_pose, config_.half_side_length)};
-
-    // if (config_.maintain_raw_chunks) {
-        // rescopeStorage(local_hashes, *dense_atlas_);
-    // }
-    // if (config_.maintain_voxelized_chunks) {
-        // auto hashes {local_hashes};
-        // hashes.insert(additional_hashes->begin(), additional_hashes->end());
-        // rescopeStorage(hashes, *sparse_atlas_);
-    // }
     rescopeStorage(local_hashes, additional_hashes);
     composeLocalMap(local_hashes, additional_hashes);
 }
@@ -176,7 +134,6 @@ std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes)
         hash_memory_.pop_front();
     }
 
-    // now take union of all hashes in recent memory
     std::set<uint256_t> recent_hashes;
     for (const auto &hash_set : hash_memory_) {
         recent_hashes.insert(hash_set.begin(), hash_set.end());
@@ -187,27 +144,15 @@ std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes)
 
 void Hylacomylus::saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize)
 {
-    std::uint32_t collection_hash {};
-    if (collection_id.has_value()) {
-        collection_hash = collection_id.value();
-    } else {
-        collection_hash = Hylacomylus::generateTimeHash();
-    }
+    std::uint32_t collection_hash = collection_id.value_or(Hylacomylus::generateTimeHash());
 
-    // save to disk
-    std::filesystem::path save_path;
-    if (voxelize) {
-        save_path = vox_scan_path_ / (std::to_string(collection_hash) + ".pcd");
-    } else {
-        save_path = raw_path_ / (std::to_string(collection_hash) + ".pcd");
-    }
+    std::filesystem::path save_path = voxelize ? vox_scan_path_ / (std::to_string(collection_hash) + ".pcd") : raw_path_ / (std::to_string(collection_hash) + ".pcd");
 
     if (utils::checkFileExistence(save_path)) {
         std::cout << "[WARN] file " << save_path << " already exists!" << std::endl;
         return; 
     }
     
-    // conditionally downsample
     if (voxelize) {
         pcl::VoxelGrid<Point> sor;
         sor.setInputCloud(cloud);
@@ -224,31 +169,21 @@ void Hylacomylus::saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::u
 
 std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash)
 {
-    std::uint32_t collection_hash {};
-    if (time_hash.has_value()) {
-        collection_hash = time_hash.value();
-    } else {
-        collection_hash = Hylacomylus::generateTimeHash();
-    }
-
+    std::uint32_t collection_hash = time_hash.value_or(Hylacomylus::generateTimeHash());
     std::set<uint256_t> data_hashes;
 
-    // assign all points to an entry in atlas
     for (std::size_t i = 0; i < cloud->points.size(); i++) {
-
         uint256_t hash {hasher_.generateHash(cloud->points[i])};
         if (!(data_hashes.contains(hash))) {
             data_hashes.insert(hash);
         }
 
         if (add_data) {
-            // stamp all these points with the updated base localization before they are indexed into atlas
             cloud->points[i].collection_id = collection_hash;
             cloud->points[i].sensor_a = robot_pose.translation().x();
             cloud->points[i].sensor_b = robot_pose.translation().y();
             cloud->points[i].sensor_c = robot_pose.translation().z();
 
-            // add an entry to atlas if it doesn't yet exist
             if (!(dense_atlas_->contains(hash))) {
                 dense_atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
                 dense_atlas_->at(hash).loadChunk();
@@ -259,9 +194,7 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
                 sparse_atlas_->at(hash).loadChunk();
             }
 
-            // add the point to the corresponding atlas entry
             dense_atlas_->at(hash).chunk->points.push_back(cloud->points[i]);
-
             sparse_atlas_->at(hash).chunk->points.push_back(cloud->points[i]);
         }
     }
@@ -314,52 +247,54 @@ void Hylacomylus::composeLocalMap(const std::set<uint256_t> &local_hashes, const
     }
 }
 
-// void Hylacomylus::deleteLastData()
-// {
-//     if (!(collection_history_->size() > 0)) {
-//         return;
-//     }
+/*
+void Hylacomylus::deleteLastData()
+{
+    if (!(collection_history_->size() > 0)) {
+        return;
+    }
 
-//     deleteMappingResult(collection_history_->top());
-//     collection_history_->pop();
-// }
+    deleteMappingResult(collection_history_->top());
+    collection_history_->pop();
+}
 
-// void Hylacomylus::deleteMappingResult(const MappingResult &result)
-// {
-//     // iterate over all data that was modified
-//     int counter {};
-//     for (const auto &hash : result.hashes) {
-//         // check if in memory
-//         if (!(atlas_->contains(hash))) {
-//             atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
-//         }
-//         // load it up
-//         atlas_->at(hash).loadChunk();
+void Hylacomylus::deleteMappingResult(const MappingResult &result)
+{
+    // iterate over all data that was modified
+    int counter {};
+    for (const auto &hash : result.hashes) {
+        // check if in memory
+        if (!(atlas_->contains(hash))) {
+            atlas_->insert({hash, Chunk(hash, chunk_path_.string())});
+        }
+        // load it up
+        atlas_->at(hash).loadChunk();
 
-//         // loop through all points and extract points with matching ID
-//         pcl::PointIndices::Ptr outliers (new pcl::PointIndices());
-//         pcl::ExtractIndices<Point> extract;
+        // loop through all points and extract points with matching ID
+        pcl::PointIndices::Ptr outliers (new pcl::PointIndices());
+        pcl::ExtractIndices<Point> extract;
 
-//         for (std::size_t i = 0; i < atlas_->at(hash).chunk->points.size(); i++) {
-//             if (atlas_->at(hash).chunk->points[i].collection_id == result.collection_id) {
-//                 outliers->indices.push_back(i);
-//                 counter++;
-//             }
-//         }
+        for (std::size_t i = 0; i < atlas_->at(hash).chunk->points.size(); i++) {
+            if (atlas_->at(hash).chunk->points[i].collection_id == result.collection_id) {
+                outliers->indices.push_back(i);
+                counter++;
+            }
+        }
 
-//         if (!(outliers->indices.size() > 0)) {continue;}
-//         extract.setInputCloud(atlas_->at(hash).chunk);
-//         extract.setIndices(outliers);
-//         extract.setNegative(true);
-//         extract.filter(*(atlas_->at(hash).chunk));
+        if (!(outliers->indices.size() > 0)) {continue;}
+        extract.setInputCloud(atlas_->at(hash).chunk);
+        extract.setIndices(outliers);
+        extract.setNegative(true);
+        extract.filter(*(atlas_->at(hash).chunk));
 
-//         if (!(atlas_->at(hash).chunk->points.size() > 0)) {
-//             if (utils::checkFileExistence(atlas_->at(hash).getFileAddress())) {
-//                 std::filesystem::remove(atlas_->at(hash).getFileAddress());
-//             }
-//         }
-//     }
-// }
+        if (!(atlas_->at(hash).chunk->points.size() > 0)) {
+            if (utils::checkFileExistence(atlas_->at(hash).getFileAddress())) {
+                std::filesystem::remove(atlas_->at(hash).getFileAddress());
+            }
+        }
+    }
+}
+*/
 
 PointCloud::Ptr Hylacomylus::map()
 {
