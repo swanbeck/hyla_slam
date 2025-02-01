@@ -16,16 +16,22 @@ struct MappingConfig
     
     int chunk_discretization;
     std::string data_dir;
-    double half_side_length;
+
+    double dense_map_radius;
+    double sparse_map_radius;
 
     bool active_mapping;
     bool persist_recent_chunks;
-    int recent_scan_memory;
+    int scan_memory_horizon;
 
-    float voxel_size;
+    int max_points_per_dense_chunk;
+    int max_points_per_sparse_chunk;
+    float sparse_voxel_size;
 
-    bool maintain_raw_chunks;
-    bool maintain_voxelized_chunks;
+    bool save_dense_scans;
+    bool save_sparse_scans;
+    bool maintain_dense_chunks;
+    bool maintain_sparse_chunks;
 }; // struct MappingConfig
 
 struct MappingResult

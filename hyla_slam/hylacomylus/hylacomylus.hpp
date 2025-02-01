@@ -9,78 +9,55 @@
 #include <stack>
 #include <filesystem>
 #include <optional>
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-
 #include <Eigen/Dense>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
-
 #include <boost/multiprecision/cpp_int.hpp>
-using namespace boost::multiprecision;
 
 #include "surface_repair_common/point_type.h"
-
 #include "chunk.hpp"
 #include "hasher.hpp"
-#include "utils.hpp"
 #include "types.hpp"
 
-using namespace std::chrono_literals;
+using namespace boost::multiprecision;
 
 namespace hylacomylus {
 
-class Hylacomylus
-{
+class Hylacomylus {
+
 public:
     Hylacomylus(const MappingConfig &config);
     ~Hylacomylus();
 
-    std::set<uint256_t> update(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
+    void update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose);
+    PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
+    PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt)
     void dumpMemoryData();
 
-    PointCloud::Ptr map();
-    PointCloud::Ptr denseMap();
-    PointCloud::Ptr sparseMap();
-
-    void saveRawScan(PointCloud::Ptr &cloud, const std::optional<std::uint32_t> &collection_id, const bool voxelize=false);
+private:
+    std::set<uint256_t> findLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose);
+    void expandStorage(const std::set<uint256_t> &hashes);
+    void pruneStorage(const std::set<uint256_t> &hashes);
+    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash);
+    void saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collection_id, const bool voxelize);
+    std::set<uint256_t> updateHashMemory(std::set<uint256_t> &hashes);
     std::uint32_t generateTimeHash();
 
 private:
-    std::set<uint256_t> findLocalHashes(const Sophus::SE3d &robot_pose, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
-    void rescopeStorage(const std::set<uint256_t> &hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
-    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &robot_pose, const bool &add_data, const std::optional<std::uint32_t> &time_hash=std::nullopt);
-    void composeLocalMap(const std::set<uint256_t> &local_hashes, const std::optional<std::set<uint256_t>> &additional_hashes);
-    std::set<uint256_t> updateHashMemory(std::set<uint256_t> &hashes);
-    void updateLocalMap(const Sophus::SE3d &robot_pose, const std::optional<std::set<uint256_t>> &additional_hashes=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
-
-    /*
-    void deleteLastData();
-    void deleteMappingResult(const MappingResult &result);
-    */
-
-private:
     MappingConfig config_;
-    ChunkHasher hasher_;
-    std::unique_ptr<std::map<uint256_t, Chunk>> dense_atlas_;
-    std::unique_ptr<std::map<uint256_t, Chunk>> sparse_atlas_;
-    std::unique_ptr<std::stack<MappingResult>> collection_history_;
-    PointCloud::Ptr dense_local_map_;
-    PointCloud::Ptr sparse_local_map_;
-
+    Hasher hasher_;
+    std::map<uint256_t, Chunk> dense_atlas_;
+    std::map<uint256_t, Chunk> sparse_atlas_;
     std::deque<std::set<uint256_t>> hash_memory_;
-    std::set<uint256_t> most_recent_hash_set_;
-    std::set<uint256_t> last_update_hash_set_;
-    
-    std::set<uint256_t> dense_hashes_;
-    std::set<uint256_t> sparse_hashes_;
 
-    std::filesystem::path chunk_path_;
-    std::filesystem::path raw_path_;
-    std::filesystem::path vox_chunk_path_;
-    std::filesystem::path vox_scan_path_;
+    std::filesystem::path dense_chunk_path_;
+    std::filesystem::path dense_scan_path_;
+    std::filesystem::path sparse_chunk_path_;
+    std::filesystem::path sparse_scan_path_;
+
 }; // class Hylacomylus
 
 } // namespace hylacomylus
