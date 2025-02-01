@@ -336,9 +336,6 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
 
         // project the current_pose forward
         projected_pose = current_pose * delta;
-
-        std::cout << "Current:\n" << current_pose.matrix() << std::endl;
-        std::cout << "Projected:\n" << projected_pose.value().matrix() << std::endl;
     }
 
     mapper_->update(dummy_cloud, current_pose, projected_pose);
