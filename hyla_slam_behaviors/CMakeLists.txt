@@ -7,6 +7,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 
+option(BUILD_SHARED_LIBS "Build behaviors as a shared library that can be loaded dynamically" OFF)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
@@ -33,7 +35,12 @@ set(BEHAVIOR_TREE_DEPS
     Eigen3
 )
 
-add_library(hyla_slam_behaviors STATIC
+set(LIBRARY_TYPE STATIC)
+if(BUILD_SHARED_LIBS)
+    set(LIBRARY_TYPE SHARED)
+endif()
+
+add_library(hyla_slam_behaviors ${LIBRARY_TYPE}
     src/construct_pose.cpp
     src/disable_localization.cpp
     src/enable_localization.cpp
@@ -47,7 +54,9 @@ add_library(hyla_slam_behaviors STATIC
     src/spawn_robot_marker.cpp
     src/unload_data.cpp
     src/update_localization_map.cpp
+    src/plugin.cpp
 )
+target_compile_definitions(hyla_slam_behaviors PRIVATE BUILD_${LIBRARY_TYPE}_LIBRARY)
 ament_target_dependencies(hyla_slam_behaviors ${BEHAVIOR_TREE_DEPS})
 
 ament_export_targets(${PROJECT_NAME}Targets HAS_LIBRARY_TARGET)
