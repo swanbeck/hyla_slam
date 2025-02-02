@@ -264,8 +264,6 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     // update mapping reference pose
     mapping_reference_pose_ = transform;
 
-    RCLCPP_INFO(this->get_logger(), "Data indexed to existing map!");
-
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "indexData: " << elapsed.count() << "ms");
@@ -323,8 +321,7 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     }
     
     // TODO restore this once basic functionality works
-    // auto map {request->dense ? mapper_->denseMap(current_pose, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->radius, projected_pose)};
-    auto map {request->dense ? mapper_->denseMap(current_pose) : mapper_->sparseMap(current_pose)};
+    auto map {request->dense ? mapper_->denseMap(current_pose, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->radius, projected_pose)};
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;

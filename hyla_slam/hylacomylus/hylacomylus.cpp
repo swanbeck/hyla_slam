@@ -8,19 +8,19 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     if (!(std::filesystem::exists(config.data_dir))) {
         std::filesystem::create_directories(config.data_dir);
     }
-    dense_chunk_path_ = std::filesystem::path(config.data_dir).append("chunks");
+    dense_chunk_path_ = std::filesystem::path(config.data_dir).append("dense_chunks");
     if (!(std::filesystem::exists(dense_chunk_path_))) {
         std::filesystem::create_directories(dense_chunk_path_);
     }
-    dense_scan_path_ = std::filesystem::path(config.data_dir).append("scans");
+    dense_scan_path_ = std::filesystem::path(config.data_dir).append("dense_scans");
     if (!(std::filesystem::exists(dense_scan_path_))) {
         std::filesystem::create_directories(dense_scan_path_);
     }
-    sparse_chunk_path_ = std::filesystem::path(config.data_dir).append("voxelized_chunks");
+    sparse_chunk_path_ = std::filesystem::path(config.data_dir).append("sparse_chunks");
     if (!(std::filesystem::exists(sparse_chunk_path_))) {
         std::filesystem::create_directories(sparse_chunk_path_);
     }
-    sparse_scan_path_ = std::filesystem::path(config.data_dir).append("voxelized_scans");
+    sparse_scan_path_ = std::filesystem::path(config.data_dir).append("sparse_scans");
     if (!(std::filesystem::exists(sparse_scan_path_))) {
         std::filesystem::create_directories(sparse_scan_path_);
     }
