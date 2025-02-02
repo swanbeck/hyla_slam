@@ -45,11 +45,11 @@ hyla_slam:
       validation:
         not_empty<>: []
     
-    save_raw_scans:
+    active_mapping:
       type: bool
       read_only: true
-      default_value: false
-      description: "Saves raw scans to disk when indexed; useful for offline map generation and pose graph reconstruction"
+      default_value: true
+      description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
 
     chunk_discretization:
       type: int
@@ -58,42 +58,56 @@ hyla_slam:
       description: "Cube side length in meters of chunks used for map discretization (volume of each chunk is chunk_discretization^3 m^3)"
       validation:
         gt<>: 0
-
-    half_side_length:
-      type: double
-      read_only: true
-      default_value: 5.0
-      description: "Half side length in meters of cubic local map surronding robot (volume is (2*half_side_length)^3 m^3)"
-      validation:
-        gt<>: 0.0
-
-    active_mapping:
-      type: bool
-      read_only: true
-      default_value: true
-      description: "Determines whether incoming LiDAR data is added to the map; generally set true unless just trying to localize on existing data"
-
+    
     persist_recent_chunks:
       type: bool
       read_only: true
       default_value: false
       description: "Map will maintain all chunks occupied by the set localization map; meant to improve localization accuracy"
     
-    recent_scan_memory:
+    scan_memory_horizon:
       type: int
       read_only: true
       default_value: 0
       description: "Data associated with last n scans will be maintained in map even if it exceeds the set half_side_length; meant to enable more reliable localization when using a small local map in a large environment"
       validation:
         gt_eq<>: 0
+
+    dense_map_radius:
+      type: double
+      read_only: true
+      default_value: 5.0
+      description: "Half side length in meters of cubic local map surronding robot (volume is (2*half_side_length)^3 m^3)"
+      validation:
+        gt<>: 0.0
     
+    sparse_map_radius:
+      type: double
+      read_only: true
+      default_value: 5.0
+      description: "Half side length in meters of cubic local map surronding robot (volume is (2*half_side_length)^3 m^3)"
+      validation:
+        gt<>: 0.0
+    
+    max_points_per_dense_chunk:
+      type: int
+      read_only: true
+      default_value: -1
+      description: "Maximum number of points added to each chunk; set to negative number to disable"
+    
+    max_points_per_sparse_chunk:
+      type: int
+      read_only: true
+      default_value: -1
+      description: "Maximum number of points added to each chunk; set to negative number to disable"
+
     save_voxelized_scans:
       type: bool
       read_only: true
       default_value: false
       description: "Saves voxelized scans to disk when indexed; useful for offline map generation and pose graph reconstruction"
     
-    voxel_size:
+    sparse_voxel_size:
       type: double
       read_only: true
       default_value: 0.3
@@ -101,17 +115,29 @@ hyla_slam:
       validation:
         gt<>: 0.0
     
-    maintain_voxelized_chunks:
+    save_dense_scans:
+      type: bool
+      read_only: true
+      default_value: true
+      description: "Indicates whether dense scans are saved to disk"
+    
+    save_sparse_scans:
       type: bool
       read_only: true
       default_value: false
-      description: "Indicates whether voxelized versions of chunks are generated and saved to disk; useful for hierarchical map representations"
-    
-    maintain_raw_chunks:
+      description: "Indicates whether voxelized versions of dense scans are saved to disk"
+
+    maintain_dense_chunks:
       type: bool
       read_only: true
       default_value: true
       description: "Indicates whether raw versions of chunks are generated and saved to disk; useful for maintaining dense data while keeping memory usage low"
+    
+    maintain_sparse_chunks:
+      type: bool
+      read_only: true
+      default_value: false
+      description: "Indicates whether voxelized versions of chunks are generated and saved to disk; useful for maintaining sparse data"
 
   localization:
     voxel_size:

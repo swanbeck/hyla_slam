@@ -1,2 +1,4 @@
+bool dense true
+float64 radius 10.0
 ---
 sensor_msgs/PointCloud2 map

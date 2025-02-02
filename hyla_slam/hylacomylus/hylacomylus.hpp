@@ -34,14 +34,14 @@ public:
 
     void update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose);
     PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
-    PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt)
-    void dumpMemoryData();
+    PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
+    void unloadData();
 
 private:
     std::set<uint256_t> findLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose);
     void expandStorage(const std::set<uint256_t> &hashes);
     void pruneStorage(const std::set<uint256_t> &hashes);
-    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash);
+    std::set<uint256_t> indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash=std::nullopt);
     void saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collection_id, const bool voxelize);
     std::set<uint256_t> updateHashMemory(std::set<uint256_t> &hashes);
     std::uint32_t generateTimeHash();

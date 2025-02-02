@@ -4,15 +4,11 @@
 #include <mutex>
 #include <chrono>
 #include <algorithm>
-
 #include <boost/multiprecision/cpp_int.hpp>
-using namespace boost::multiprecision;
-
 #include <rclcpp/rclcpp.hpp>
-
+#include <std_srvs/srv/trigger.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.hpp>
-
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -21,16 +17,14 @@ using namespace boost::multiprecision;
 #include "hyla_kiss/kiss_icp_utils.hpp"
 #include "hylacomylus/hylacomylus.hpp"
 #include "hylacomylus/types.hpp"
-#include "hylacomylus/utils.hpp"
-
 #include "hyla_slam_parameters.hpp"
-
-#include <std_srvs/srv/trigger.hpp>
 #include "hyla_slam_interfaces/srv/get_displacement.hpp"
 #include "hyla_slam_interfaces/srv/get_map.hpp"
 #include "hyla_slam_interfaces/srv/get_map_similarity.hpp"
 #include "hyla_slam_interfaces/srv/index_data.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
+
+using namespace boost::multiprecision;
 
 namespace hyla_slam {
 
@@ -52,7 +46,7 @@ private:
     void updateLocalization(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg);
     
     void getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response);
-    void getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response);
+    void getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response);
     void indexData(const std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::IndexData::Response> response);
     void updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>);

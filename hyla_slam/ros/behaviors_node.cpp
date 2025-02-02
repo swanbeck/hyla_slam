@@ -13,17 +13,20 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
     // create the configs and the two pipelines
     auto mapping_params = params_.mapping;
-    mapping_config_.fixed_frame = params_.fixed_frame;
-    mapping_config_.robot_frame = params_.robot_frame;
-    mapping_config_.chunk_discretization = mapping_params.chunk_discretization;
     mapping_config_.data_dir = mapping_params.data_dir;
-    mapping_config_.half_side_length = mapping_params.half_side_length;
     mapping_config_.active_mapping = mapping_params.active_mapping;
+    mapping_config_.chunk_discretization = mapping_params.chunk_discretization;
     mapping_config_.persist_recent_chunks = mapping_params.persist_recent_chunks;
-    mapping_config_.recent_scan_memory = mapping_params.recent_scan_memory;
-    mapping_config_.voxel_size = mapping_params.voxel_size;
-    mapping_config_.maintain_raw_chunks = mapping_params.maintain_raw_chunks;
-    mapping_config_.maintain_voxelized_chunks = mapping_params.maintain_voxelized_chunks;
+    mapping_config_.scan_memory_horizon = mapping_params.scan_memory_horizon;
+    mapping_config_.dense_map_radius = mapping_params.dense_map_radius;
+    mapping_config_.sparse_map_radius = mapping_params.sparse_map_radius;
+    mapping_config_.max_points_per_dense_chunk = mapping_params.max_points_per_dense_chunk;
+    mapping_config_.max_points_per_sparse_chunk = mapping_params.max_points_per_sparse_chunk;
+    mapping_config_.sparse_voxel_size = mapping_params.sparse_voxel_size;
+    mapping_config_.save_dense_scans = mapping_params.save_dense_scans;
+    mapping_config_.save_sparse_scans = mapping_params.save_sparse_scans;
+    mapping_config_.maintain_dense_chunks = mapping_params.maintain_dense_chunks;
+    mapping_config_.maintain_sparse_chunks = mapping_params.maintain_sparse_chunks;
     mapper_ = std::make_unique<hylacomylus::Hylacomylus>(mapping_config_);
 
     auto localization_params = params_.localization;
@@ -176,6 +179,7 @@ void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_inte
     RCLCPP_DEBUG_STREAM(this->get_logger(), "setLocalizationEstimate: " << elapsed.count() << "ms");
 }
 
+// TODO
 void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     auto start {std::chrono::high_resolution_clock::now()};
@@ -187,12 +191,12 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
         map_lidar_estimate = localizer_->pose();
     }
 
-    hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
-    localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
+    // hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
+    // localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
     localization_reference_pose_ = map_lidar_estimate;
 
     // get map from mapper
-    auto map {mapper_->map()};
+    auto map {mapper_->sparseMap(map_lidar_estimate)};
 
     if (!map->points.size() > 0) {
         std::string msg {"Map stored by mapper has 0 points!"};
@@ -233,25 +237,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
         map_lidar_estimate = localizer_->pose();
     }
 
-    // use the header to generate a hash
-    // auto collection_id {static_cast<std::uint32_t>(request->cloud.header.stamp.sec % UINT32_MAX)};
-    auto collection_id {mapper_->generateTimeHash()};
-
-    // transform cloud (using request transform if provided)
-    hylacomylus::PointCloud::Ptr input_point_cloud (new hylacomylus::PointCloud);
-    pcl::fromROSMsg(request->cloud, *input_point_cloud);
-
-    if (params_.mapping.save_raw_scans) {
-        mapper_->saveRawScan(input_point_cloud, collection_id);
-    }
-
-    if (params_.mapping.save_voxelized_scans) {
-        mapper_->saveRawScan(input_point_cloud, collection_id, true);
-    }
-    
-    hylacomylus::PointCloud::Ptr transformed_point_cloud (new hylacomylus::PointCloud);
-
-    // transform the cloud into the fixed frame (using the service transforms, if provided)
+    // get the proper transform between cloud and fixed frame
     Sophus::SE3d transform;
     if (request->lookup_transform == true) {
         geometry_msgs::msg::TransformStamped robot_lidar_transform;
@@ -270,24 +256,22 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
         transform = (tf2::transformToSophus(request->local_transform) * tf2::transformToSophus(request->global_transform)).inverse();
     }
 
-    pcl::transformPointCloudWithNormals(*input_point_cloud, *transformed_point_cloud, transform.matrix());
-    
-    // update the mapper with the projected pose
-    latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
-
-    // index data in mapper
-    // latest_hashes_ = mapper_->update(transformed_point_cloud, transform);
+    // update the mapper
+    hylacomylus::PointCloud::Ptr point_cloud (new hylacomylus::PointCloud);
+    pcl::fromROSMsg(request->cloud, *point_cloud);
+    mapper_->update(point_cloud, transform);
     
     // update mapping reference pose
     mapping_reference_pose_ = transform;
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Data indexed to existing map! Updated map has " << mapper_->map()->points.size() << " points.");
+    RCLCPP_INFO(this->get_logger(), "Data indexed to existing map!");
 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "indexData: " << elapsed.count() << "ms");
 }
 
+// TODO consider relocating this
 void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMapSimilarity::Response> response)
 {
     if (latest_hashes_.empty()) {
@@ -316,7 +300,7 @@ void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces:
     response->score = similarity;
 }
 
-void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
+void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::GetMap::Response> response)
 {
     auto start {std::chrono::high_resolution_clock::now()};
 
@@ -337,15 +321,17 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
         // project the current_pose forward
         projected_pose = current_pose * delta;
     }
-
-    mapper_->update(dummy_cloud, current_pose, projected_pose);
+    
+    // TODO restore this once basic functionality works
+    // auto map {request->dense ? mapper_->denseMap(current_pose, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->radius, projected_pose)};
+    auto map {request->dense ? mapper_->denseMap(current_pose) : mapper_->sparseMap(current_pose)};
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;
-    pcl::toROSMsg(*(mapper_->map()), msg);
+    pcl::toROSMsg(*map, msg);
     msg.header.frame_id = params_.fixed_frame;
     response->map = msg;
-    RCLCPP_INFO_STREAM(this->get_logger(), "Returning map of size " << mapper_->map()->size() << ".");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Returning map of size " << map->size() << ".");
 
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
@@ -399,7 +385,6 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
         return;
     }
 
-    // see if localization is even enabled
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         if (!localization_enabled_) {
@@ -407,13 +392,11 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
         }
     }
 
-    // register the frame to update localization
     {
         std::unique_lock<std::shared_mutex> lock(mutex_);
         localizer_->registerFrame(kiss_icp_ros::utils::PointCloud2ToEigen(raw_msg));
     }
 
-    // get the pose out
     Sophus::SE3d pose_estimate;
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
@@ -437,7 +420,7 @@ void BehaviorsNode::updateLocalization(const sensor_msgs::msg::PointCloud2::Cons
     auto robot_lidar_pose {tf2::transformToSophus(robot_lidar_transform)};
     Sophus::SE3d map_robot_pose {pose_estimate * robot_lidar_pose.inverse()};
 
-    // broadcast tf
+    // broadcast it
     geometry_msgs::msg::TransformStamped map_robot_tf;
     map_robot_tf.transform = tf2::sophusToTransform(map_robot_pose);
     map_robot_tf.header.frame_id = params_.fixed_frame;
@@ -482,7 +465,7 @@ void BehaviorsNode::disableLocalization(const std::shared_ptr<std_srvs::srv::Tri
 
 void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
-    mapper_->dumpMemoryData();
+    mapper_->unloadData();
     std::string msg {"Unloaded data in memory to disk!"};
     RCLCPP_INFO(this->get_logger(), msg.c_str());
     localization_reference_pose_ = std::nullopt;

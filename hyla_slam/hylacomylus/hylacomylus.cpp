@@ -1,4 +1,4 @@
-#include "hylacomylus_re.hpp"
+#include "hylacomylus.hpp"
 
 namespace hylacomylus {
 
@@ -28,7 +28,7 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
 
 Hylacomylus::~Hylacomylus()
 {
-    dumpMemoryData();
+    unloadData();
 }
 
 void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose)
@@ -39,31 +39,31 @@ void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose)
     expandStorage(recent_hashes);
 }
 
-PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
-    const auto hashes {findLocalHashes(pose, radius.has_value() ? radius : config_.sparse_map_radius, projected_pose)};
+PointCloud::Ptr Hylacomylus::sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
+    const auto hashes {findLocalHashes(pose, radius.has_value() ? radius.value() : config_.sparse_map_radius, projected_pose)};
     expandStorage(hashes);
 
     PointCloud::Ptr map (new PointCloud);
     for (const auto &hash : hashes) {
-        *map += *(sparse_atlas_.at(hash).chunk)
+        *map += *(sparse_atlas_.at(hash).chunk);
     }
 
     return map;
 }
 
-PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
-    const auto hashes {findLocalHashes(pose, radius.has_value() ? radius : config_.dense_map_radius, projected_pose)};
+PointCloud::Ptr Hylacomylus::denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
+    const auto hashes {findLocalHashes(pose, radius.has_value() ? radius.value() : config_.dense_map_radius, projected_pose)};
     expandStorage(hashes);
     
     PointCloud::Ptr map (new PointCloud);
     for (const auto &hash : hashes) {
-        *map += *(dense_atlas_.at(hash).chunk)
+        *map += *(dense_atlas_.at(hash).chunk);
     }
 
     return map;
 }
 
-void Hylacomylus::dumpMemoryData() {
+void Hylacomylus::unloadData() {
     for (auto &entry : dense_atlas_) {
         entry.second.unload();
     }
@@ -110,7 +110,7 @@ void Hylacomylus::expandStorage(const std::set<uint256_t> &hashes) {
 
         if (config_.maintain_sparse_chunks) {
             if (!sparse_atlas_.contains(hash)) {
-                sparse_atlas_.insert({hash, Chunk(hash, sparse_chunk_path_.string(), true)});
+                sparse_atlas_.insert({hash, Chunk(hash, sparse_chunk_path_.string(), true, config_.sparse_voxel_size)});
             }
             sparse_atlas_.at(hash).load();
         }
@@ -149,10 +149,10 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
     std::uint32_t collection_id {time_hash.value_or(Hylacomylus::generateTimeHash())};
 
     if (config_.save_dense_scans) {
-        Hylacomylus::saveRawScan(cloud, collection_id, false);
+        Hylacomylus::saveScan(cloud, collection_id, false);
     }
     if (config_.save_sparse_scans) {
-        Hylacomylus::saveRawScan(cloud, collection_id, true);
+        Hylacomylus::saveScan(cloud, collection_id, true);
     }
 
     PointCloud::Ptr transformed_cloud (new PointCloud);
@@ -172,22 +172,28 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
 
         if (config_.maintain_dense_chunks) {
             if (!(dense_atlas_.contains(hash))) {
-                dense_atlas_.insert({hash, Chunk(hash, chunk_path_.string())});
+                dense_atlas_.insert({hash, Chunk(hash, dense_chunk_path_.string())});
                 dense_atlas_.at(hash).load();
             }
-            if (dense_atlas_.at(hash).chunk->points.size() < config_.max_points_per_dense_chunk) {
-                dense_atlas_.at(hash).chunk->points.push_back(transformed_cloud->points[i]);
+
+            if ((dense_atlas_.at(hash).chunk->points.size() >= config_.max_points_per_dense_chunk) && (config_.max_points_per_dense_chunk > 0)) {
+                continue;
             }
+
+            dense_atlas_.at(hash).chunk->points.push_back(transformed_cloud->points[i]);
         }
 
         if (config_.maintain_sparse_chunks) {
             if (!(sparse_atlas_.contains(hash))) {
-                sparse_atlas_.insert({hash, Chunk(hash, vox_chunk_path_.string(), true, config_.voxel_size)});
+                sparse_atlas_.insert({hash, Chunk(hash, sparse_chunk_path_.string(), true, config_.sparse_voxel_size)});
                 sparse_atlas_.at(hash).load();
             }
-            if (sparse_atlas_.at(hash).chunk->points.size() < config_.max_points_per_sparse_chunk) {
-                sparse_atlas_.at(hash).chunk->points.push_back(transformed_cloud->points[i]);
+
+            if ((sparse_atlas_.at(hash).chunk->points.size() >= config_.max_points_per_sparse_chunk) && (config_.max_points_per_sparse_chunk > 0)) {
+                continue;
             }
+
+            sparse_atlas_.at(hash).chunk->points.push_back(transformed_cloud->points[i]);
         }
     }
 
@@ -195,7 +201,7 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
 }
 
 void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collection_id, const bool voxelize) {
-    std::filesystem::path save_path = voxelize ? sparse_scan_path_ / (std::to_string(collection_hash) + ".pcd") : dense_scan_path_ / (std::to_string(collection_hash) + ".pcd");
+    std::filesystem::path save_path = voxelize ? sparse_scan_path_ / (std::to_string(collection_id) + ".pcd") : dense_scan_path_ / (std::to_string(collection_id) + ".pcd");
 
     if (std::filesystem::exists(save_path)) {
         return; 
@@ -216,10 +222,10 @@ void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collecti
 }
 
 std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes) {
-    if (config_.recent_scan_memory == 0) { return hashes; }
+    if (config_.scan_memory_horizon == 0) { return hashes; }
 
     hash_memory_.push_back(hashes);
-    while (hash_memory_.size() > config_.recent_scan_memory) {
+    while (hash_memory_.size() > config_.scan_memory_horizon) {
         hash_memory_.pop_front();
     }
 

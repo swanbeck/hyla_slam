@@ -11,7 +11,9 @@ GetMap::GetMap(const std::string name, const BT::NodeConfig &config)
 BT::PortsList GetMap::providedPorts()
 {
     return {
-        BT::OutputPort<sensor_msgs::msg::PointCloud2>("map")
+        BT::InputPort<bool>("dense"),
+        BT::InputPort<double>("radius"),
+        BT::OutputPort<sensor_msgs::msg::PointCloud2>("map"),
     };
 }
 
@@ -32,6 +34,9 @@ BT::NodeStatus GetMap::onStart()
 
     // construct a request
     auto req {std::make_shared<Trigger::Request>()};
+    req->dense = getInput<bool>("dense").value_or(true);
+    req->radius = getInput<double>("radius").value_or(10.0);
+
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Get map " << result << "...");
 

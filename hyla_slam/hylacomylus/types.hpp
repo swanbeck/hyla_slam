@@ -11,18 +11,15 @@ namespace hylacomylus {
 
 struct MappingConfig
 {
-    std::string fixed_frame;
-    std::string robot_frame;
-    
-    int chunk_discretization;
     std::string data_dir;
+    
+    bool active_mapping;
+    int chunk_discretization;
+    bool persist_recent_chunks;
+    int scan_memory_horizon;
 
     double dense_map_radius;
     double sparse_map_radius;
-
-    bool active_mapping;
-    bool persist_recent_chunks;
-    int scan_memory_horizon;
 
     int max_points_per_dense_chunk;
     int max_points_per_sparse_chunk;
