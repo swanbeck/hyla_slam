@@ -16,7 +16,6 @@ BT::NodeStatus UnloadData::onStart()
     auto result {BT::NodeStatus::RUNNING};
     service_client_ = node_->create_client<Trigger>("hyla_slam/unload_data");
 
-    // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
     while (!service_client_->wait_for_service(std::chrono::milliseconds(10))) {
@@ -26,7 +25,6 @@ BT::NodeStatus UnloadData::onStart()
         }
     }
 
-    // construct a request
     auto req {std::make_shared<Trigger::Request>()};
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Unload data " << result << "...");

@@ -9,7 +9,7 @@ GetMapSimilarity::GetMapSimilarity(const std::string name, const BT::NodeConfig 
 BT::PortsList GetMapSimilarity::providedPorts()
 {
     return {
-        BT::InputPort<double>("threshold")
+        BT::InputPort<double>("threshold"),
     };
 }
 

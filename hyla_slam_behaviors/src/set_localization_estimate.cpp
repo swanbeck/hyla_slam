@@ -9,19 +9,17 @@ SetLocalizationEstimate::SetLocalizationEstimate(const std::string name, const B
 BT::PortsList SetLocalizationEstimate::providedPorts()
 {
     return {
-        BT::InputPort<geometry_msgs::msg::PoseStamped>("pose")
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
     };
 }
 
 BT::NodeStatus SetLocalizationEstimate::onStart()
 {
-    // read in targets
-    auto pose_option {getInput<geometry_msgs::msg::PoseStamped>("pose")};
+    auto pose_option {getInput<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose")};
 
     auto result {BT::NodeStatus::RUNNING};
     service_client_ = node_->create_client<Trigger>("hyla_slam/set_localization_estimate");
 
-    // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
     while (!service_client_->wait_for_service(std::chrono::milliseconds(10))) {
@@ -31,13 +29,12 @@ BT::NodeStatus SetLocalizationEstimate::onStart()
         }
     }
 
-    // construct a request
     auto req {std::make_shared<Trigger::Request>()};
 
     if (pose_option.has_value()) {
-        req->pose = pose_option.value();
+        req->pose = *(pose_option.value());
     } else {
-        RCLCPP_INFO(node_->get_logger(), "No pose provided! Assuming Identity pose!");
+        RCLCPP_DEBUG(node_->get_logger(), "No pose provided! Assuming Identity pose!");
         req->identity = true;
     }
 
@@ -62,7 +59,7 @@ BT::NodeStatus SetLocalizationEstimate::onRunning()
         }
         case rclcpp::FutureReturnCode::SUCCESS: {
             auto return_status {BT::NodeStatus::SUCCESS}; 
-            // auto resp {request_future_->get()};
+            auto resp {request_future_->get()};
             request_future_ = std::nullopt;
             RCLCPP_INFO_STREAM(node_->get_logger(), "Set localization estimate responded! Returning " << return_status << "!");
             return return_status;

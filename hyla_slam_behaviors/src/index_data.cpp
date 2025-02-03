@@ -9,18 +9,18 @@ IndexData::IndexData(const std::string name, const BT::NodeConfig &config)
 BT::PortsList IndexData::providedPorts()
 {
     return {
-        BT::InputPort<sensor_msgs::msg::PointCloud2>("point_cloud"),
-        BT::InputPort<geometry_msgs::msg::TransformStamped>("local_transform"),
-        BT::InputPort<geometry_msgs::msg::TransformStamped>("global_transform")
+        BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud"),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform"),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform"),
     };
 }
 
 BT::NodeStatus IndexData::onStart()
 {
     // read in targets
-    auto cloud_option {getInput<sensor_msgs::msg::PointCloud2>("point_cloud")};
-    auto local_transform_option {getInput<geometry_msgs::msg::TransformStamped>("local_transform")};
-    auto global_transform_option {getInput<geometry_msgs::msg::TransformStamped>("global_transform")};
+    auto cloud_option {getInput<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud")};
+    auto local_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform")};
+    auto global_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform")};
     auto cloud = cloud_option.value();
 
     auto result {BT::NodeStatus::RUNNING};
@@ -38,13 +38,13 @@ BT::NodeStatus IndexData::onStart()
 
     // construct a request
     auto req {std::make_shared<Trigger::Request>()};
-    req->cloud = cloud;
+    req->cloud = *cloud;
     if (global_transform_option.has_value()) {
         req->lookup_transform = false;
-        req->global_transform = global_transform_option.value();
+        req->global_transform = *(global_transform_option.value());
         
         if (local_transform_option.has_value()) {
-            req->local_transform = local_transform_option.value();
+            req->local_transform = *(local_transform_option.value());
         }
     }
     request_future_ = service_client_->async_send_request(req);
@@ -68,7 +68,7 @@ BT::NodeStatus IndexData::onRunning()
         }
         case rclcpp::FutureReturnCode::SUCCESS: {
             auto return_status {BT::NodeStatus::SUCCESS}; 
-            // auto resp {request_future_->get()};
+            auto resp {request_future_->get()};
             request_future_ = std::nullopt;
             RCLCPP_INFO_STREAM(node_->get_logger(), "Index data responded! Returning " << return_status << "!");
             return return_status;

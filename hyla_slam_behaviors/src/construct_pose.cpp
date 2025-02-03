@@ -9,7 +9,7 @@ ConstructPose::ConstructPose(const std::string name, const BT::NodeConfig &confi
 BT::PortsList ConstructPose::providedPorts()
 {
     return {
-        BT::InputPort<geometry_msgs::msg::Point>("point"),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::Point>>("point"),
         BT::InputPort<double>("x"),
         BT::InputPort<double>("y"),
         BT::InputPort<double>("z"),
@@ -18,18 +18,18 @@ BT::PortsList ConstructPose::providedPorts()
         BT::InputPort<double>("qy"),
         BT::InputPort<double>("qz"),
         BT::InputPort<std::string>("frame_id"),
-        BT::OutputPort<geometry_msgs::msg::PoseStamped>("pose")
+        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose")
     };
 }
 
 BT::NodeStatus ConstructPose::tick()
 {
     double x, y, z;
-    auto point_opt {getInput<geometry_msgs::msg::Point>("point")};
+    auto point_opt {getInput<std::shared_ptr<geometry_msgs::msg::Point>>("point")};
     if (point_opt.has_value()) {
-        x = point_opt.value().x;
-        y = point_opt.value().y;
-        z = point_opt.value().z;
+        x = point_opt.value()->x;
+        y = point_opt.value()->y;
+        z = point_opt.value()->z;
     } else {
         x = getInput<double>("x").value_or(0.0);
         y = getInput<double>("y").value_or(0.0);
@@ -51,7 +51,7 @@ BT::NodeStatus ConstructPose::tick()
     pose.pose.orientation.y = qy;
     pose.pose.orientation.z = qz;
 
-    setOutput<geometry_msgs::msg::PoseStamped>("pose", pose);
+    setOutput<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", std::make_shared<geometry_msgs::msg::PoseStamped>(pose));
 
     return BT::NodeStatus::SUCCESS;
 }

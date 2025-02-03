@@ -13,7 +13,7 @@ BT::PortsList GetMap::providedPorts()
     return {
         BT::InputPort<bool>("dense"),
         BT::InputPort<double>("radius"),
-        BT::OutputPort<sensor_msgs::msg::PointCloud2>("map"),
+        BT::OutputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("map"),
     };
 }
 
@@ -22,7 +22,6 @@ BT::NodeStatus GetMap::onStart()
     auto result {BT::NodeStatus::RUNNING};
     service_client_ = node_->create_client<Trigger>("hyla_slam/get_map");
 
-    // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
     while (!service_client_->wait_for_service(std::chrono::milliseconds(10))) {
@@ -32,7 +31,6 @@ BT::NodeStatus GetMap::onStart()
         }
     }
 
-    // construct a request
     auto req {std::make_shared<Trigger::Request>()};
     req->dense = getInput<bool>("dense").value_or(true);
     req->radius = getInput<double>("radius").value_or(10.0);
@@ -60,7 +58,7 @@ BT::NodeStatus GetMap::onRunning()
             auto return_status {BT::NodeStatus::SUCCESS};
 
             auto resp {request_future_->get()};
-            setOutput("map", resp->map);
+            setOutput<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("map", std::make_shared<sensor_msgs::msg::PointCloud2>(resp->map));
 
             pub_->publish(resp->map);
 

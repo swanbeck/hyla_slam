@@ -10,7 +10,7 @@ BT::PortsList GetMappingDisplacement::providedPorts()
 {
     return {
         BT::InputPort<double>("linear_target"),
-        BT::InputPort<double>("angular_target")
+        BT::InputPort<double>("angular_target"),
     };
 }
 

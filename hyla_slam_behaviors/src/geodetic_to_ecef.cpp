@@ -2,14 +2,11 @@
 
 constexpr double R_EARTH = 6371000.0; // Earth's radius in meters (assuming a perfect sphere)
 
-// Convert degrees to radians
 double degToRad(double degrees) {
     return degrees * M_PI / 180.0;
 }
 
-// Compute the 6DOF pose in ECEF
 void computeECEFPose(double latitude, double longitude, double height, double extraAngleDeg, Eigen::Vector3d &position, Eigen::Matrix3d &rotationMatrix) {
-    // Convert latitude, longitude, and extra angle to radians
     double lat = degToRad(latitude);
     double lon = degToRad(longitude);
     double extraAngle = degToRad(extraAngleDeg);
@@ -50,9 +47,9 @@ void computeECEFPose(double latitude, double longitude, double height, double ex
     Eigen::Vector3d rotatedNorth = extraRotation * northVector;
 
     // Step 6: Construct the rotation matrix
-    rotationMatrix.col(0) = rotatedEast;  // X-axis
-    rotationMatrix.col(1) = rotatedNorth; // Y-axis
-    rotationMatrix.col(2) = upVector;    // Z-axis
+    rotationMatrix.col(0) = rotatedEast;
+    rotationMatrix.col(1) = rotatedNorth;
+    rotationMatrix.col(2) = upVector;
 }
 
 namespace hyla_slam_behaviors {
@@ -69,7 +66,7 @@ BT::PortsList GeodeticToEcef::providedPorts()
         BT::InputPort<double>("height"),
         BT::InputPort<double>("heading"),
         BT::InputPort<std::string>("frame"),
-        BT::OutputPort<geometry_msgs::msg::PoseStamped>("pose"),
+        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
     };
 }
 
@@ -98,10 +95,7 @@ BT::NodeStatus GeodeticToEcef::tick()
     pose.pose.orientation.y = q.y();
     pose.pose.orientation.z = q.z();
 
-    setOutput<geometry_msgs::msg::PoseStamped>("pose", pose);
-
-    std::cout << "(x, y, z) = (" << std::scientific << pos.x() << ", " << std::scientific << pos.y() << ", " << std::scientific << pos.z() << ")" << std::endl;
-    std::cout << "(w, x, y, z) = (" << std::scientific << q.w() << ", " << std::scientific << q.x() << ", " << std::scientific << q.y() << ", " << std::scientific << q.z() << ")" << std::endl;
+    setOutput<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", std::make_shared<geometry_msgs::msg::PoseStamped>(pose));
 
     return BT::NodeStatus::SUCCESS;
 }
