@@ -33,6 +33,8 @@ Hylacomylus::~Hylacomylus()
 
 std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint256_t>> Hylacomylus::manageDiskMemory(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose, const std::optional<std::set<uint256_t>> &disk_hash_set)
 {
+    std::cout << "In manageDiskMemory..." << std::endl;
+
     // get set of all chunks on disk (or have this saved? probably should be saved)
     std::set<uint256_t> disk_hashes;
     if (disk_hash_set.has_value()) {
@@ -41,14 +43,20 @@ std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint25
         for (const auto &entry : std::filesystem::directory_iterator(dense_chunk_path_)) {
             if (entry.is_regular_file()) {
                 std::string filename {entry.path().filename().string()};
-                uint256_t hash {std::stoull(filename.substr(0, filename.find('.')))};
-                disk_hashes.insert(hash);
+                try {
+                    uint256_t hash {std::stoull(filename.substr(0, filename.find('.')))};
+                    disk_hashes.insert(hash);
+                } catch (const std::invalid_argument &e) {}
             }
         }
     }
 
+    std::cout << "Disk hashes: " << disk_hashes.size() << std::endl;
+
     // now get all hashes near the robot
     auto local_hashes {findLocalHashes(pose, radius, projected_pose)};
+
+    std::cout << "Local hashes: " << local_hashes.size() << std::endl;
 
     // compute similarity
     auto jaccard_similarity = [](const std::set<uint256_t> &s1, const std::set<uint256_t> &s2) -> std::tuple<double, std::set<uint256_t>, std::set<uint256_t>> {
@@ -69,6 +77,8 @@ std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint25
 
     auto [similarity, intersection_set, union_set] = jaccard_similarity(disk_hashes, local_hashes);
 
+    std::cout << "Similarity: " << similarity << std::endl;
+
     // don't bother computing expensive set difference if not sufficiently dissimilar
     if (similarity > threshold) {
         std::set<std::string> disk_not_local_paths;
@@ -77,9 +87,13 @@ std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint25
     }
 
     std::set_difference(disk_hashes.begin(), disk_hashes.end(), local_hashes.begin(), local_hashes.end(), std::inserter(disk_not_local, disk_not_local.begin()));
+    std::cout << "Disk not local: " << disk_not_local.size() << std::endl;
+
     std::set_difference(local_hashes.begin(), local_hashes.end(), disk_hashes.begin(), disk_hashes.end(), std::inserter(local_not_disk, local_not_disk.begin()));
+    std::cout << "Local not disk: " << local_not_disk.size() << std::endl;
 
     // convert hashes to paths
+    // TODO convert these to vectors
     std::set<std::string> disk_not_local_paths;
     std::set<std::string> local_not_disk_paths;
 
@@ -95,8 +109,12 @@ std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint25
         local_not_disk_paths.insert((dense_chunk_path_ / (oss.str() + ".pcd")).string());
     }
 
+    std::cout << "Paths: " << disk_not_local_paths.size() << " " << local_not_disk_paths.size() << std::endl;
+
     // remove disk not local from storage if it exists so it is complete and ready to be offloaded
     pruneStorage(disk_not_local);
+
+    std::cout << "Returning..." << std::endl;
 
     return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths, disk_hashes);
 }

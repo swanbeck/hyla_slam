@@ -38,7 +38,7 @@ BT::NodeStatus ManageLocalStorage::onStart()
     req->radius = radius;
 
     request_future_ = service_client_->async_send_request(req);
-    RCLCPP_DEBUG_STREAM(node_->get_logger(), "Manage local storage " << result << "...");
+    RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage " << result << "...");
 
     return result;
 }
