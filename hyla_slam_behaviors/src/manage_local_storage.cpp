@@ -9,6 +9,7 @@ ManageLocalStorage::ManageLocalStorage(const std::string name, const BT::NodeCon
 BT::PortsList ManageLocalStorage::providedPorts()
 {
     return {
+        BT::InputPort<std::string>("remote_hostname"),
         BT::InputPort<double>("similarity_threshold"),
         BT::InputPort<double>("radius"),
         BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("load_files"),
@@ -18,11 +19,18 @@ BT::PortsList ManageLocalStorage::providedPorts()
 
 BT::NodeStatus ManageLocalStorage::onStart()
 {
+    auto result {BT::NodeStatus::RUNNING};
+    
     auto threshold {getInput<double>("similarity_threshold").value()};
     auto radius {getInput<double>("radius").value()};
 
-    auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/manage_local_storage");
+    std::string service_handle {"hyla_slam/manage_local_storage"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
 
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};

@@ -9,6 +9,7 @@ GetPose::GetPose(const std::string name, const BT::NodeConfig &config)
 BT::PortsList GetPose::providedPorts()
 {
     return {
+        BT::InputPort<std::string>("remote_hostname"),
         BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
     };
 }
@@ -16,7 +17,14 @@ BT::PortsList GetPose::providedPorts()
 BT::NodeStatus GetPose::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/get_pose");
+    
+    std::string service_handle {"hyla_slam/get_pose"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
 
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};

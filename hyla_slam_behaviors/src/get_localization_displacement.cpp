@@ -9,6 +9,7 @@ GetLocalizationDisplacement::GetLocalizationDisplacement(const std::string name,
 BT::PortsList GetLocalizationDisplacement::providedPorts()
 {
     return {
+        BT::InputPort<std::string>("remote_hostname"),
         BT::InputPort<double>("linear_target"),
         BT::InputPort<double>("angular_target"),
     };
@@ -16,16 +17,21 @@ BT::PortsList GetLocalizationDisplacement::providedPorts()
 
 BT::NodeStatus GetLocalizationDisplacement::onStart()
 {
-    // read in targets
+    auto result {BT::NodeStatus::RUNNING};
+
     auto linear_target_option {getInput<double>("linear_target")};
     auto angular_target_option {getInput<double>("angular_target")};
     linear_target_ = linear_target_option.value_or(-1.0);
     angular_target_ = angular_target_option.value_or(-1.0);
 
-    auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/get_localization_displacement");
+    std::string service_handle {"hyla_slam/get_localization_displacement"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
 
-    // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
     while (!service_client_->wait_for_service(std::chrono::milliseconds(10))) {
@@ -35,7 +41,6 @@ BT::NodeStatus GetLocalizationDisplacement::onStart()
         }
     }
 
-    // construct a request
     auto req {std::make_shared<Trigger::Request>()};
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_DEBUG_STREAM(node_->get_logger(), "Get localization displacement " << result << "...");

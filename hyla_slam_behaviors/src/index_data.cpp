@@ -9,6 +9,7 @@ IndexData::IndexData(const std::string name, const BT::NodeConfig &config)
 BT::PortsList IndexData::providedPorts()
 {
     return {
+        BT::InputPort<std::string>("remote_hostname"),
         BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud"),
         BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform"),
         BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform"),
@@ -17,14 +18,20 @@ BT::PortsList IndexData::providedPorts()
 
 BT::NodeStatus IndexData::onStart()
 {
-    // read in targets
+    auto result {BT::NodeStatus::RUNNING};
+    
     auto cloud_option {getInput<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud")};
     auto local_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform")};
     auto global_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform")};
     auto cloud = cloud_option.value();
 
-    auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/index_data");
+    std::string service_handle {"hyla_slam/index_data"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
 
     // add timeout to wait for the service
     std::chrono::milliseconds timeout(1000);

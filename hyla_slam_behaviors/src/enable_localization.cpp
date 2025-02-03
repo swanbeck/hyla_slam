@@ -8,15 +8,23 @@ EnableLocalization::EnableLocalization(const std::string name, const BT::NodeCon
 
 BT::PortsList EnableLocalization::providedPorts()
 {
-    return {};
+    return {
+        BT::InputPort<std::string>("remote_hostname"),
+    };
 }
 
 BT::NodeStatus EnableLocalization::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/enable_localization");
 
-    // add timeout to wait for the service
+    std::string service_handle {"hyla_slam/enable_localization"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
+
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
     while (!service_client_->wait_for_service(std::chrono::milliseconds(10))) {
@@ -26,7 +34,6 @@ BT::NodeStatus EnableLocalization::onStart()
         }
     }
 
-    // construct a request
     auto req {std::make_shared<Trigger::Request>()};
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Enable localization " << result << "...");

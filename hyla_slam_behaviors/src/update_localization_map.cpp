@@ -8,13 +8,22 @@ UpdateLocalizationMap::UpdateLocalizationMap(const std::string name, const BT::N
 
 BT::PortsList UpdateLocalizationMap::providedPorts()
 {
-    return {};
+    return {
+        BT::InputPort<std::string>("remote_hostname"),
+    };
 }
 
 BT::NodeStatus UpdateLocalizationMap::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
-    service_client_ = node_->create_client<Trigger>("hyla_slam/update_localization_map");
+
+    std::string service_handle {"hyla_slam/update_localization_map"};
+    auto remote_hostname {getInput<std::string>("remote_hostname")};
+    if (remote_hostname.has_value()) {
+        service_client_ = node_->create_client<Trigger>("/" + remote_hostname.value() + "/" + service_handle);
+    } else {
+        service_client_ = node_->create_client<Trigger>(service_handle);
+    }
 
     std::chrono::milliseconds timeout(1000);
     auto start_time {std::chrono::steady_clock::now()};
