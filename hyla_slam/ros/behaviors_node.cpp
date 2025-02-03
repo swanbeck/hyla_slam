@@ -155,18 +155,16 @@ void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interface
     // store hashes for efficiency
     disk_hashes_ = disk_hashset;
 
+    response->similarity = similarity;
+    
     // if similarity is below threshold, set response to load and unload data
     if (similarity > request->similarity_threshold) {
-        response->load = false;
-        response->unload = false;
         return;
     }
 
     // reset this to force it be recalculated on next run
     disk_hashes_ = std::nullopt;
 
-    response->load = true;
-    response->unload = true;
     response->load_files = std::vector<std::string>(local_not_disk.begin(), local_not_disk.end());
     response->unload_files = std::vector<std::string>(disk_not_local.begin(), disk_not_local.end());
 }

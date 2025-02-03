@@ -1,7 +1,6 @@
 float64 similarity_threshold
 float64 radius
 ---
-bool load false
-bool unload false
+float64 similarity
 string[] load_files
 string[] unload_files

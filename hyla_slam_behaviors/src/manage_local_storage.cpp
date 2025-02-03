@@ -61,15 +61,16 @@ BT::NodeStatus ManageLocalStorage::onRunning()
 
             auto resp {request_future_->get()};
 
-            // if (resp->load) {
-            setOutput("load_files", std::make_shared<std::deque<std::string>>(resp->load_files.begin(), resp->load_files.end()));
-            return_status = BT::NodeStatus::SUCCESS;
-            // }
+            if (resp->similarity > getInput<double>("similarity_threshold").value()) {
+                RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage responded with " << resp->similarity << ". Returning " << return_status << "!");
+                return return_status;
+            }
 
-            // if (resp->unload) {
+            setOutput("load_files", std::make_shared<std::deque<std::string>>(resp->load_files.begin(), resp->load_files.end()));
+
             setOutput("unload_files", std::make_shared<std::deque<std::string>>(resp->unload_files.begin(), resp->unload_files.end()));
+
             return_status = BT::NodeStatus::SUCCESS;
-            // }
 
             request_future_ = std::nullopt;
             RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage responded! Returning " << return_status << "!");
