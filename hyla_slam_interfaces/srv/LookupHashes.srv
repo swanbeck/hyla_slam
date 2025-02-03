@@ -1,0 +1,5 @@
+int32 DISK=0
+int32 MEMORY=1
+int32 location 0
+---
+string[] hashes

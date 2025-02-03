@@ -49,7 +49,9 @@ add_library(hyla_slam_behaviors ${LIBRARY_TYPE}
     src/get_map.cpp
     src/get_map_similarity.cpp
     src/get_mapping_displacement.cpp
+    src/get_pose.cpp
     src/index_data.cpp
+    src/lookup_hashes.cpp
     src/manage_local_storage.cpp
     src/set_localization_estimate.cpp
     src/spawn_robot_marker.cpp

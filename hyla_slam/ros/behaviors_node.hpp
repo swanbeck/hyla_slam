@@ -17,11 +17,13 @@
 #include "hyla_kiss/kiss_icp_utils.hpp"
 #include "hylacomylus/hylacomylus.hpp"
 #include "hylacomylus/types.hpp"
-#include "hyla_slam_parameters.hpp"
+#include "hyla_slam/hyla_slam_parameters.hpp"
 #include "hyla_slam_interfaces/srv/get_displacement.hpp"
 #include "hyla_slam_interfaces/srv/get_map.hpp"
 #include "hyla_slam_interfaces/srv/get_map_similarity.hpp"
+#include "hyla_slam_interfaces/srv/get_pose.hpp"
 #include "hyla_slam_interfaces/srv/index_data.hpp"
+#include "hyla_slam_interfaces/srv/lookup_hashes.hpp"
 #include "hyla_slam_interfaces/srv/manage_local_storage.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
@@ -42,6 +44,8 @@ public:
 
 private:
     void manageLocalStorage(const std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Response> response);
+    void lookupHashes(const std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Response> response);
+    void getPoseEstimate(std::shared_ptr<hyla_slam_interfaces::srv::GetPose::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetPose::Response> response);
 
     void enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void disableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
@@ -132,8 +136,8 @@ private:
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::SetPose>> set_localization_estimate_server_;
 
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::ManageLocalStorage>> manage_local_storage_server_;
-
-    std::optional<std::set<uint256_t>> disk_hashes_ {std::nullopt};
+    std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::LookupHashes>> lookup_hashes_server_;
+    std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetPose>> get_pose_server_;
 
 }; // class BehaviorsNode
 

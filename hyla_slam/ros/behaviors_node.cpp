@@ -129,9 +129,22 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         rmw_qos_profile_default,
         service_cb_group_
     );
+
     manage_local_storage_server_ = this->create_service<hyla_slam_interfaces::srv::ManageLocalStorage>(
-        "~/manage_local_storage",
+        "~/manage_disk",
         std::bind(&BehaviorsNode::manageLocalStorage, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
+    lookup_hashes_server_ = this->create_service<hyla_slam_interfaces::srv::LookupHashes>(
+        "~/lookup_hashes",
+        std::bind(&BehaviorsNode::lookupHashes, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
+    get_pose_server_ = this->create_service<hyla_slam_interfaces::srv::GetPose>(
+        "~/get_pose",
+        std::bind(&BehaviorsNode::getPoseEstimate, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
     );
@@ -140,33 +153,92 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     RCLCPP_INFO(this->get_logger(), "Up and ready!");
 }
 
-void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Response> response)
+void BehaviorsNode::lookupHashes(const std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Response> response)
 {
-    // get pose estimate
-    Sophus::SE3d pose_estimate;
-    {
-        std::shared_lock<std::shared_mutex> lock(mutex_);
-        pose_estimate = localizer_->pose();
+    std::set<uint256_t> hashes;
+
+    if (static_cast<int>(request->location) == static_cast<int>(hyla_slam_interfaces::srv::LookupHashes::Request::DISK)) {
+        hashes = mapper_->lookupDiskHashes();
+    } else if (static_cast<int>(request->location) == static_cast<int>(hyla_slam_interfaces::srv::LookupHashes::Request::MEMORY)) {
+        hashes = mapper_->lookupMemoryHashes();
+    } else {
+        RCLCPP_ERROR_STREAM(this->get_logger(), "Invalid hash location " << static_cast<int>(request->location) << " specified!");
+        return;
     }
 
-    // assess status of disk data
-    auto [similarity, disk_not_local, local_not_disk, disk_hashset] = mapper_->manageDiskMemory(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, disk_hashes_);
+    std::vector<std::string> hash_strings;
+    for (const auto &hash : hashes) {
+        std::ostringstream oss;
+        oss << hash;
+        hash_strings.push_back(oss.str());
+    }
+    response->hashes = hash_strings;
+}
 
-    // store hashes for efficiency
-    disk_hashes_ = disk_hashset;
+void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Response> response)
+{
+    const auto &pose_msg = request->pose.pose;
+    Eigen::Quaterniond orientation(pose_msg.orientation.w, pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z);
+    Eigen::Vector3d position(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
+    auto pose_estimate {Sophus::SE3d(orientation, position)};
+
+    std::set<uint256_t> search_set;
+    for (const auto &hash_str : request->search_set) {
+        uint256_t hash = uint256_t(hash_str);
+        search_set.insert(hash);
+    }
+
+    auto [similarity, disk_not_local, local_not_disk] = mapper_->manageDisk(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, search_set);
 
     response->similarity = similarity;
     
-    // if similarity is below threshold, set response to load and unload data
     if (similarity > request->similarity_threshold) {
         return;
     }
 
-    // reset this to force it be recalculated on next run
-    disk_hashes_ = std::nullopt;
+    response->load_files = local_not_disk;
+    response->unload_files = disk_not_local;
+}
 
-    response->load_files = std::vector<std::string>(local_not_disk.begin(), local_not_disk.end());
-    response->unload_files = std::vector<std::string>(disk_not_local.begin(), disk_not_local.end());
+void BehaviorsNode::getPoseEstimate(std::shared_ptr<hyla_slam_interfaces::srv::GetPose::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetPose::Response> response)
+{
+    Sophus::SE3d map_lidar_estimate;
+    {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
+        map_lidar_estimate = localizer_->pose();
+    }
+
+    // get the proper transform between cloud and fixed frame
+    geometry_msgs::msg::TransformStamped robot_lidar_transform;
+    try {
+        robot_lidar_transform = tf_buffer_->lookupTransform(
+            params_.localization_frame,
+            params_.robot_frame,
+            tf2::TimePointZero
+        );
+    } catch (const tf2::TransformException &ex) {
+        RCLCPP_WARN(this->get_logger(), "Could not transform %s to %s: %s", params_.localization_frame.c_str(), params_.robot_frame.c_str(), ex.what());
+        return;
+    }
+
+    // use it to back out an estimate for the transform of the robot frame WRT to the fixed frame
+    auto robot_lidar_estimate {tf2::transformToSophus(robot_lidar_transform)};
+    Sophus::SE3d map_robot_estimate {map_lidar_estimate * robot_lidar_estimate.inverse()};
+
+    // now convert transform to pose and set
+    geometry_msgs::msg::PoseStamped pose_msg;
+    pose_msg.header.stamp = this->now();
+    pose_msg.header.frame_id = params_.fixed_frame;
+    Eigen::Quaterniond quat(map_robot_estimate.rotationMatrix());
+    pose_msg.pose.orientation.x = quat.x();
+    pose_msg.pose.orientation.y = quat.y();
+    pose_msg.pose.orientation.z = quat.z();
+    pose_msg.pose.orientation.w = quat.w();
+    pose_msg.pose.position.x = map_robot_estimate.translation().x();
+    pose_msg.pose.position.y = map_robot_estimate.translation().y();
+    pose_msg.pose.position.z = map_robot_estimate.translation().z();
+
+    response->pose = pose_msg;
 }
 
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)

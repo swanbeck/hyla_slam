@@ -9,20 +9,23 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 set(srv_files
     "srv/GetDisplacement.srv"
     "srv/GetMap.srv"
     "srv/GetMapSimilarity.srv"
+    "srv/GetPose.srv"
     "srv/IndexData.srv"
+    "srv/LookupHashes.srv"
     "srv/ManageLocalStorage.srv"
     "srv/SetPose.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
     ${srv_files}
-    DEPENDENCIES std_msgs sensor_msgs
+    DEPENDENCIES std_msgs sensor_msgs geometry_msgs
 )
 
 ament_export_dependencies(rosidl_default_runtime)
