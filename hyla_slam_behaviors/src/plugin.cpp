@@ -8,6 +8,7 @@
 #include "hyla_slam_behaviors/get_map.hpp"
 #include "hyla_slam_behaviors/get_mapping_displacement.hpp"
 #include "hyla_slam_behaviors/index_data.hpp"
+#include "hyla_slam_behaviors/manage_local_storage.hpp"
 #include "hyla_slam_behaviors/set_localization_estimate.hpp"
 #include "hyla_slam_behaviors/spawn_robot_marker.hpp"
 #include "hyla_slam_behaviors/unload_data.hpp"
@@ -23,6 +24,7 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory &factory) {
     factory.registerNodeType<hyla_slam_behaviors::GetMapSimilarity>("GetMapSimilarity");
     factory.registerNodeType<hyla_slam_behaviors::GetMappingDisplacement>("GetMappingDisplacement");
     factory.registerNodeType<hyla_slam_behaviors::IndexData>("IndexData");
+    factory.registerNodeType<hyla_slam_behaviors::ManageLocalStorage>("ManageLocalStorage");
     factory.registerNodeType<hyla_slam_behaviors::SetLocalizationEstimate>("SetLocalizationEstimate");
     factory.registerNodeType<hyla_slam_behaviors::SpawnRobotMarker>("SpawnRobotMarker");
     factory.registerNodeType<hyla_slam_behaviors::UnloadData>("UnloadData");

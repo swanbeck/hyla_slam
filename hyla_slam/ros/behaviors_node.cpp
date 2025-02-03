@@ -129,9 +129,46 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         rmw_qos_profile_default,
         service_cb_group_
     );
+    manage_local_storage_server_ = this->create_service<hyla_slam_interfaces::srv::ManageLocalStorage>(
+        "~/manage_local_storage",
+        std::bind(&BehaviorsNode::manageLocalStorage, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
 
     startExecutors();
     RCLCPP_INFO(this->get_logger(), "Up and ready!");
+}
+
+void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Response> response)
+{
+    // get pose estimate
+    Sophus::SE3d pose_estimate;
+    {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
+        pose_estimate = localizer_->pose();
+    }
+
+    // assess status of disk data
+    auto [similarity, disk_not_local, local_not_disk, disk_hashset] = mapper_->manageDiskMemory(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, disk_hashes_);
+
+    // store hashes for efficiency
+    disk_hashes_ = disk_hashset;
+
+    // if similarity is below threshold, set response to load and unload data
+    if (similarity > request->similarity_threshold) {
+        response->load = false;
+        response->unload = false;
+        return;
+    }
+
+    // reset this to force it be recalculated on next run
+    disk_hashes_ = std::nullopt;
+
+    response->load = true;
+    response->unload = true;
+    response->load_files = std::vector<std::string>(local_not_disk.begin(), local_not_disk.end());
+    response->unload_files = std::vector<std::string>(disk_not_local.begin(), disk_not_local.end());
 }
 
 void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::SetPose::Response>)

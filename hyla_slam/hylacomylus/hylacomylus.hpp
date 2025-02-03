@@ -9,6 +9,7 @@
 #include <stack>
 #include <filesystem>
 #include <optional>
+#include <sstream>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -36,6 +37,8 @@ public:
     PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     void unloadData();
+
+    std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint256_t>> manageDiskMemory(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose, const std::optional<std::set<uint256_t>> &disk_hash_set);
 
 private:
     std::set<uint256_t> findLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose);

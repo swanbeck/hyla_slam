@@ -31,6 +31,76 @@ Hylacomylus::~Hylacomylus()
     unloadData();
 }
 
+std::tuple<double, std::set<std::string>, std::set<std::string>, std::set<uint256_t>> Hylacomylus::manageDiskMemory(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose, const std::optional<std::set<uint256_t>> &disk_hash_set)
+{
+    // get set of all chunks on disk (or have this saved? probably should be saved)
+    std::set<uint256_t> disk_hashes;
+    if (disk_hash_set.has_value()) {
+        disk_hashes = disk_hash_set.value();
+    } else {
+        for (const auto &entry : std::filesystem::directory_iterator(dense_chunk_path_)) {
+            if (entry.is_regular_file()) {
+                std::string filename {entry.path().filename().string()};
+                uint256_t hash {std::stoull(filename.substr(0, filename.find('.')))};
+                disk_hashes.insert(hash);
+            }
+        }
+    }
+
+    // now get all hashes near the robot
+    auto local_hashes {findLocalHashes(pose, radius, projected_pose)};
+
+    // compute similarity
+    auto jaccard_similarity = [](const std::set<uint256_t> &s1, const std::set<uint256_t> &s2) -> std::tuple<double, std::set<uint256_t>, std::set<uint256_t>> {
+        std::set<uint256_t> intersection_set;
+        std::set<uint256_t> union_set;
+
+        std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
+        std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));
+
+        double similarity = union_set.empty() ? 1.0 : static_cast<double>(intersection_set.size()) / union_set.size();
+
+        return std::make_tuple(similarity, intersection_set, union_set);
+    };
+
+    // compute the set of items in disk_hashes not in local_hashes and vice versa
+    std::set<uint256_t> disk_not_local;
+    std::set<uint256_t> local_not_disk;
+
+    auto [similarity, intersection_set, union_set] = jaccard_similarity(disk_hashes, local_hashes);
+
+    // don't bother computing expensive set difference if not sufficiently dissimilar
+    if (similarity > threshold) {
+        std::set<std::string> disk_not_local_paths;
+        std::set<std::string> local_not_disk_paths;
+        return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths, disk_hashes);
+    }
+
+    std::set_difference(disk_hashes.begin(), disk_hashes.end(), local_hashes.begin(), local_hashes.end(), std::inserter(disk_not_local, disk_not_local.begin()));
+    std::set_difference(local_hashes.begin(), local_hashes.end(), disk_hashes.begin(), disk_hashes.end(), std::inserter(local_not_disk, local_not_disk.begin()));
+
+    // convert hashes to paths
+    std::set<std::string> disk_not_local_paths;
+    std::set<std::string> local_not_disk_paths;
+
+    for (const auto &hash : disk_not_local) {
+        std::ostringstream oss;
+        oss << hash;
+        disk_not_local_paths.insert((dense_chunk_path_ / (oss.str() + ".pcd")).string());
+    }
+
+    for (const auto &hash : local_not_disk) {
+        std::ostringstream oss;
+        oss << hash;
+        local_not_disk_paths.insert((dense_chunk_path_ / (oss.str() + ".pcd")).string());
+    }
+
+    // remove disk not local from storage if it exists so it is complete and ready to be offloaded
+    pruneStorage(disk_not_local);
+
+    return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths, disk_hashes);
+}
+
 void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose)
 {
     auto scan_hashes {indexData(cloud, pose)};

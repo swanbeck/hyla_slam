@@ -22,6 +22,7 @@
 #include "hyla_slam_interfaces/srv/get_map.hpp"
 #include "hyla_slam_interfaces/srv/get_map_similarity.hpp"
 #include "hyla_slam_interfaces/srv/index_data.hpp"
+#include "hyla_slam_interfaces/srv/manage_local_storage.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
 using namespace boost::multiprecision;
@@ -40,6 +41,8 @@ public:
     enum Capability { LOCALIZATION, MAPPING };
 
 private:
+    void manageLocalStorage(const std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::ManageLocalStorage::Response> response);
+
     void enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void disableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
@@ -127,6 +130,10 @@ private:
 
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> update_localization_map_server_;
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::SetPose>> set_localization_estimate_server_;
+
+    std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::ManageLocalStorage>> manage_local_storage_server_;
+
+    std::optional<std::set<uint256_t>> disk_hashes_ {std::nullopt};
 
 }; // class BehaviorsNode
 
