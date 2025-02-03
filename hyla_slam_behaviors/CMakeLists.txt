@@ -7,7 +7,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 
-option(BUILD_SHARED_LIBS "Build behaviors as a shared library that can be loaded dynamically" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries instead of static" OFF)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
