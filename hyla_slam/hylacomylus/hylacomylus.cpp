@@ -35,23 +35,14 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
 {
     const auto disk_hashes {lookupDiskHashes()};
 
-    std::cout << "Disk hashes: " << disk_hashes.size() << std::endl;
-
-    std::cout << "Radius: " << radius << std::endl;
-
     std::set<hash256_t> local_hashes;
     if (search_hash_set.has_value()) {
-        std::cout << "Search has set: " << search_hash_set.value().size() << std::endl;
         local_hashes = searchLocalHashes(pose, radius, search_hash_set.value(), projected_pose);
     } else {
         local_hashes = computeLocalHashes(pose, radius, projected_pose);
     }
 
-    std::cout << "Local hashes: " << local_hashes.size() << std::endl;
-
     auto [similarity, intersection_set, union_set] {jaccardSimilarity(disk_hashes, local_hashes)};
-
-    std::cout << "Similarity: " << similarity << std::endl;
 
     std::set<hash256_t> disk_not_local;
     std::set<hash256_t> local_not_disk;
@@ -63,10 +54,8 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
     }
 
     std::set_difference(disk_hashes.begin(), disk_hashes.end(), local_hashes.begin(), local_hashes.end(), std::inserter(disk_not_local, disk_not_local.begin()));
-    std::cout << "Disk not local: " << disk_not_local.size() << std::endl;
 
     std::set_difference(local_hashes.begin(), local_hashes.end(), disk_hashes.begin(), disk_hashes.end(), std::inserter(local_not_disk, local_not_disk.begin()));
-    std::cout << "Local not disk: " << local_not_disk.size() << std::endl;
 
     disk_not_local_paths.reserve(disk_not_local.size());
     for (const auto &hash : disk_not_local) {
@@ -78,11 +67,7 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
         local_not_disk_paths.push_back((dense_chunk_path_ / (to_hex_string(hash) + ".pcd")).string());
     }
 
-    std::cout << "Paths: " << disk_not_local_paths.size() << " " << local_not_disk_paths.size() << std::endl;
-
     pruneStorage(disk_not_local);
-
-    std::cout << "Returning..." << std::endl;
 
     return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths);
 }
@@ -134,21 +119,14 @@ std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, con
     const Eigen::Vector3d midpoint {(foci1 + foci2) / 2};
     const double a {std::max(radius, (foci1 - foci2).norm() / 2)};
 
-    std::cout << "Radius: " << radius << std::endl;
-    std::cout << "Foci1: " << foci1.transpose() << std::endl;
-    std::cout << "Foci2: " << foci2.transpose() << std::endl;
-
     for (const auto &hash : search_hashes) {
         const auto point {hasher_.parseHash(hash)};
         double distance1 {(point - foci1).norm()};
         double distance2 {(point - foci2).norm()};
-        std::cout << "D1 + D2: " << distance1 + distance2 << "; 2 * a: " << 2 * a << std::endl;
         if (distance1 + distance2 <= 2 * a) {
             hashes.insert(hash);
         }
     }
-
-    std::cout << "Local hashes: " << hashes.size() << std::endl;
 
     return hashes;
 }
