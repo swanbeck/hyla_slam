@@ -128,29 +128,43 @@ std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, con
 {
     std::set<hash256_t> hashes;
 
-    const Eigen::Vector3d foci1 {pose.translation()};
-    const Eigen::Vector3d foci2 {projected_pose.has_value() ? pose.translation() + 2 * (projected_pose.value().translation() - pose.translation()) : foci1};
+    
+    Eigen::Vector3d test(1045839475980.0, -5678694859.7, -897942738.9);
+    auto hash {hasher_.generateHash(test)};
+    std::cout << "Hash post generation: " << hash.n0 << ", " << hash.n1 << ", " << hash.n2 << ", " << hash.n3 << std::endl;
+    std::cout << "Hash: " << to_hex_string(hash) << "-> Test: " << test.transpose() << std::endl;
+    auto point {hasher_.parseHash(hash)};
+    std::cout << "Hash: " << to_hex_string(from_hex_string(to_hex_string(hash))) << "-> Point: " << point.transpose() << std::endl;
 
-    const Eigen::Vector3d midpoint {(foci1 + foci2) / 2};
-    const double a {std::max(radius, (foci1 - foci2).norm() / 2)};
+    auto raw_hash {hasher_.generateHash(test)};
+    auto hex_hash {to_hex_string(hash)};
+    auto back_hash {from_hex_string(hex_hash)};
+    auto parsed_hash {hasher_.parseHash(back_hash)};
+    std::cout << "Hash: " << hex_hash << "-> Parsed hash: " << parsed_hash.transpose() << std::endl;
 
-    std::cout << "Radius: " << radius << std::endl;
-    std::cout << "Foci1: " << foci1.transpose() << std::endl;
-    std::cout << "Foci2: " << foci2.transpose() << std::endl;
+    // const Eigen::Vector3d foci1 {pose.translation()};
+    // const Eigen::Vector3d foci2 {projected_pose.has_value() ? pose.translation() + 2 * (projected_pose.value().translation() - pose.translation()) : foci1};
 
-    for (const auto &hash : search_hashes) {
-        const auto point {hasher_.parseHash(hash)};
+    // const Eigen::Vector3d midpoint {(foci1 + foci2) / 2};
+    // const double a {std::max(radius, (foci1 - foci2).norm() / 2)};
 
-        std::cout << "Hash: " << to_hex_string(hash) << "-> Point: " << point.transpose() << std::endl;
+    // std::cout << "Radius: " << radius << std::endl;
+    // std::cout << "Foci1: " << foci1.transpose() << std::endl;
+    // std::cout << "Foci2: " << foci2.transpose() << std::endl;
 
-        double distance1 {(point - foci1).norm()};
-        double distance2 {(point - foci2).norm()};
-        if (distance1 + distance2 <= 2 * a) {
-            hashes.insert(hash);
-        }
-    }
+    // for (const auto &hash : search_hashes) {
+    //     const auto point {hasher_.parseHash(hash)};
 
-    std::cout << "Local hashes: " << hashes.size() << std::endl;
+    //     std::cout << "Hash: " << to_hex_string(hash) << "-> Point: " << point.transpose() << std::endl;
+
+    //     double distance1 {(point - foci1).norm()};
+    //     double distance2 {(point - foci2).norm()};
+    //     if (distance1 + distance2 <= 2 * a) {
+    //         hashes.insert(hash);
+    //     }
+    // }
+
+    // std::cout << "Local hashes: " << hashes.size() << std::endl;
 
     return hashes;
 }

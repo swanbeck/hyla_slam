@@ -12,10 +12,7 @@
 namespace hylacomylus {
 
 struct hash256_t {
-    std::uint64_t n0;
-    std::uint64_t n1;
-    std::uint64_t n2;
-    std::uint64_t n3;
+    std::uint64_t n0, n1, n2, n3;
 
     hash256_t(std::uint64_t n0, std::uint64_t n1, std::uint64_t n2, std::uint64_t n3)
     : n0(n0), n1(n1), n2(n2), n3(n3) {}
@@ -30,8 +27,6 @@ struct hash256_t {
 
 std::string to_hex_string(const hash256_t &hash);
 hash256_t from_hex_string(const std::string &hex_str);
-
-// std::ostream& operator<<(std::ostream& os, const hash256_t& hash);
 
 struct MappingConfig
 {

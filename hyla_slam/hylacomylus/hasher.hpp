@@ -27,10 +27,18 @@ public:
 
     hash256_t generateHash(const Eigen::Vector3d &point) 
     {
+        // std::uint64_t n0 {sign_hashes[{valueSign(point.x()), valueSign(point.y()), valueSign(point.z())}]};
+
+        std::array<std::int8_t, 3> signs = {valueSign(point.x()), valueSign(point.y()), valueSign(point.z())};
+        std::cout << "Signs:" << signs[0] << ", " << signs[1] << ", " << signs[2] << std::endl;
         std::uint64_t n0 {sign_hashes[{valueSign(point.x()), valueSign(point.y()), valueSign(point.z())}]};
+        std::cout << "n0" << n0 << std::endl;
         std::uint64_t n1 = valueMagnitude(point.x());
+        std::cout << "n1" << n1 << std::endl;
         std::uint64_t n2 = valueMagnitude(point.y());
+        std::cout << "n2" << n2 << std::endl;
         std::uint64_t n3 = valueMagnitude(point.z());
+        std::cout << "n3" << n3 << std::endl;
 
         return hash256_t(n0, n1, n2, n3);
     }
@@ -39,7 +47,12 @@ public:
     {
         Eigen::Vector3d p;
 
+        std::cout << "Hash components: " << hash.n0 << ", " << hash.n1 << ", " << hash.n2 << ", " << hash.n3 << std::endl;
+
         std::array<std::int8_t, 3> signs = hash_signs[hash.n0];
+
+        std::cout << "Signs:" << signs[0] << ", " << signs[1] << ", " << signs[2] << std::endl;
+
         p.x() = static_cast<double>(hash.n1) * signs[0] * discretization;
         p.y() = static_cast<double>(hash.n2) * signs[1] * discretization;
         p.z() = static_cast<double>(hash.n3) * signs[2] * discretization;
