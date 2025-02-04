@@ -10,6 +10,7 @@ BT::PortsList ManageLocalStorage::providedPorts()
 {
     return {
         BT::InputPort<std::string>("remote_hostname"),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
         BT::InputPort<double>("similarity_threshold"),
         BT::InputPort<double>("radius"),
         BT::InputPort<std::shared_ptr<std::deque<std::string>>>("search_hashes"),
@@ -22,6 +23,7 @@ BT::NodeStatus ManageLocalStorage::onStart()
 {
     auto result {BT::NodeStatus::RUNNING};
     
+    auto pose_option {getInput<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose")};
     auto threshold {getInput<double>("similarity_threshold").value()};
     auto radius {getInput<double>("radius").value()};
 
@@ -45,6 +47,10 @@ BT::NodeStatus ManageLocalStorage::onStart()
     auto req {std::make_shared<Trigger::Request>()};
     req->similarity_threshold = threshold;
     req->radius = radius;
+
+    if (pose_option.has_value()) {
+        req->pose = *(pose_option.value());
+    }
 
     auto search_hashes_option {getInput<std::shared_ptr<std::deque<std::string>>>("search_hashes")};
     if (search_hashes_option.has_value()) {
