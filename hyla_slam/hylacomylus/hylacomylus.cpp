@@ -49,10 +49,6 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
     std::vector<std::string> disk_not_local_paths;
     std::vector<std::string> local_not_disk_paths;
 
-    // if (similarity > threshold) {
-    //     return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths);
-    // }
-
     std::set_difference(disk_hashes.begin(), disk_hashes.end(), local_hashes.begin(), local_hashes.end(), std::inserter(disk_not_local, disk_not_local.begin()));
 
     std::set_difference(local_hashes.begin(), local_hashes.end(), disk_hashes.begin(), disk_hashes.end(), std::inserter(local_not_disk, local_not_disk.begin()));

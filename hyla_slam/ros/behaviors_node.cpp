@@ -192,11 +192,6 @@ void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interface
     auto [similarity, disk_not_local, local_not_disk] = mapper_->manageDisk(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, search_hashes);
 
     response->similarity = similarity;
-    
-    if (similarity > request->similarity_threshold) {
-        return;
-    }
-
     response->load_files = local_not_disk;
     response->unload_files = disk_not_local;
 }
