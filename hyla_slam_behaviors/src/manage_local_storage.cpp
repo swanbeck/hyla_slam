@@ -93,7 +93,7 @@ BT::NodeStatus ManageLocalStorage::onRunning()
             return_status = BT::NodeStatus::SUCCESS;
 
             request_future_ = std::nullopt;
-            RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage responded! Returning " << return_status << "!");
+            RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage responded! Returning " << return_status << "! " << resp->load_files.size() << " files to load and " << resp->unload_files.size() << " files to unload.");
             return return_status;
         }
     }
