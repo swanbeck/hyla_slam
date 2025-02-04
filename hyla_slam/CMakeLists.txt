@@ -65,6 +65,7 @@ add_library(hylacomylus STATIC
     hylacomylus/chunk.hpp
     hylacomylus/hasher.hpp
     hylacomylus/types.hpp
+    hylacomylus/types.cpp
 )
 target_include_directories(hylacomylus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(hylacomylus PUBLIC ${PCL_LIBRARIES} sophus ${Boost_LIBRARIES})

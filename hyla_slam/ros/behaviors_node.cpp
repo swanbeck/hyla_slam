@@ -131,7 +131,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     );
 
     manage_local_storage_server_ = this->create_service<hyla_slam_interfaces::srv::ManageLocalStorage>(
-        "~/manage_disk",
+        "~/manage_local_storage",
         std::bind(&BehaviorsNode::manageLocalStorage, this, std::placeholders::_1, std::placeholders::_2),
         rmw_qos_profile_default,
         service_cb_group_
@@ -155,7 +155,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
 
 void BehaviorsNode::lookupHashes(const std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Request> request, std::shared_ptr<hyla_slam_interfaces::srv::LookupHashes::Response> response)
 {
-    std::set<uint256_t> hashes;
+    std::set<hash256_t> hashes;
 
     if (static_cast<int>(request->location) == static_cast<int>(hyla_slam_interfaces::srv::LookupHashes::Request::DISK)) {
         hashes = mapper_->lookupDiskHashes();
@@ -168,10 +168,9 @@ void BehaviorsNode::lookupHashes(const std::shared_ptr<hyla_slam_interfaces::srv
 
     std::vector<std::string> hash_strings;
     for (const auto &hash : hashes) {
-        std::ostringstream oss;
-        oss << hash;
-        hash_strings.push_back(oss.str());
+        hash_strings.push_back(to_hex_string(hash));
     }
+    RCLCPP_INFO_STREAM(this->get_logger(), "Returning " << hash_strings.size() << " hashes.");
     response->hashes = hash_strings;
 }
 
@@ -182,11 +181,13 @@ void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interface
     Eigen::Vector3d position(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
     auto pose_estimate {Sophus::SE3d(orientation, position)};
 
-    std::set<uint256_t> search_hashes;
+    std::set<hash256_t> search_hashes;
     for (const auto &hash_str : request->search_hashes) {
-        uint256_t hash = uint256_t(hash_str);
+        hash256_t hash {hylacomylus::from_hex_string(hash_str)};
         search_hashes.insert(hash);
     }
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Managing local storage with " << search_hashes.size() << " hashes.");
 
     auto [similarity, disk_not_local, local_not_disk] = mapper_->manageDisk(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, search_hashes);
 
@@ -385,9 +386,9 @@ void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces:
     }
 
     // compute Jaccard Similarity between sets
-    auto jaccard_similarity = [](const std::set<uint256_t> &s1, const std::set<uint256_t> &s2) -> double {
-        std::set<uint256_t> intersection_set;
-        std::set<uint256_t> union_set;
+    auto jaccard_similarity = [](const std::set<hash256_t> &s1, const std::set<hash256_t> &s2) -> double {
+        std::set<hash256_t> intersection_set;
+        std::set<hash256_t> union_set;
 
         std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
         std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));

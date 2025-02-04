@@ -4,11 +4,12 @@
 #include <sstream>
 #include <optional>
 #include <filesystem>
-#include <boost/multiprecision/cpp_int.hpp>
+// #include <boost/multiprecision/cpp_int.hpp>
 
+#include "types.hpp"
 #include "surface_repair_common/point_type.h"
 
-using namespace boost::multiprecision;
+// using namespace boost::multiprecision;
 
 namespace hylacomylus {
 
@@ -16,21 +17,19 @@ using Point = FabricMaintenance::Point;
 using PointCloud = pcl::PointCloud<FabricMaintenance::Point>;
 
 struct Chunk {
-    const uint256_t id;
+    const hash256_t id;
     const std::string dir;
     bool loaded;
     bool sparse;
     float leaf_size;
     PointCloud::Ptr chunk;
 
-    Chunk(uint256_t handle, std::string root_dir, bool is_sparse=false, std::optional<float> leaf=std::nullopt) : id(handle), dir(root_dir), loaded(false), sparse(is_sparse), chunk(new PointCloud) {
+    Chunk(hash256_t handle, std::string root_dir, bool is_sparse=false, std::optional<float> leaf=std::nullopt) : id(handle), dir(root_dir), loaded(false), sparse(is_sparse), chunk(new PointCloud) {
         leaf_size = leaf.value_or(0.1);
     };
 
     std::string getFileAddress() {
-        std::ostringstream oss;
-        oss << id;
-        return std::filesystem::path(dir).append(oss.str() + ".pcd");
+        return std::filesystem::path(dir).append(to_hex_string(id) + ".pcd");
     }
 
     void add(const PointCloud::Ptr &addition) {

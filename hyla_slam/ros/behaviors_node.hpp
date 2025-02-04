@@ -4,7 +4,7 @@
 #include <mutex>
 #include <chrono>
 #include <algorithm>
-#include <boost/multiprecision/cpp_int.hpp>
+// #include <boost/multiprecision/cpp_int.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <pcl_conversions/pcl_conversions.h>
@@ -27,13 +27,15 @@
 #include "hyla_slam_interfaces/srv/manage_local_storage.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
 
-using namespace boost::multiprecision;
+// using namespace boost::multiprecision;
 
 namespace hyla_slam {
 
 class BehaviorsNode : public rclcpp::Node
 {
 public:
+    using hash256_t = hylacomylus::hash256_t;
+
     BehaviorsNode(const rclcpp::NodeOptions &opts);
 
     ~BehaviorsNode() {
@@ -120,8 +122,8 @@ private:
     std::optional<Sophus::SE3d> localization_reference_pose_;
     std::optional<Sophus::SE3d> mapping_reference_pose_;
 
-    std::set<uint256_t> latest_hashes_;
-    std::set<uint256_t> localization_reference_hashes_;
+    std::set<hash256_t> latest_hashes_;
+    std::set<hash256_t> localization_reference_hashes_;
 
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_localization_displacement_server_;
     std::shared_ptr<rclcpp::Service<hyla_slam_interfaces::srv::GetDisplacement>> get_mapping_displacement_server_;

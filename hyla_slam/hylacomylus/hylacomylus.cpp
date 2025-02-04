@@ -31,14 +31,17 @@ Hylacomylus::~Hylacomylus()
     unloadData();
 }
 
-std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomylus::manageDisk(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose, const std::optional<std::set<uint256_t>> &search_hash_set)
+std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomylus::manageDisk(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose, const std::optional<std::set<hash256_t>> &search_hash_set)
 {
     const auto disk_hashes {lookupDiskHashes()};
 
     std::cout << "Disk hashes: " << disk_hashes.size() << std::endl;
 
-    std::set<uint256_t> local_hashes;
+    std::cout << "Radius: " << radius << std::endl;
+
+    std::set<hash256_t> local_hashes;
     if (search_hash_set.has_value()) {
+        std::cout << "Search has set: " << search_hash_set.value().size() << std::endl;
         local_hashes = searchLocalHashes(pose, radius, search_hash_set.value(), projected_pose);
     } else {
         local_hashes = computeLocalHashes(pose, radius, projected_pose);
@@ -50,8 +53,8 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
 
     std::cout << "Similarity: " << similarity << std::endl;
 
-    std::set<uint256_t> disk_not_local;
-    std::set<uint256_t> local_not_disk;
+    std::set<hash256_t> disk_not_local;
+    std::set<hash256_t> local_not_disk;
     std::vector<std::string> disk_not_local_paths;
     std::vector<std::string> local_not_disk_paths;
 
@@ -66,18 +69,13 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
     std::cout << "Local not disk: " << local_not_disk.size() << std::endl;
 
     disk_not_local_paths.reserve(disk_not_local.size());
-
     for (const auto &hash : disk_not_local) {
-        std::ostringstream oss;
-        oss << hash;
-        disk_not_local_paths.push_back((dense_chunk_path_ / (oss.str() + ".pcd")).string());
+        disk_not_local_paths.push_back((dense_chunk_path_ / (to_hex_string(hash) + ".pcd")).string());
     }
 
     local_not_disk_paths.reserve(local_not_disk.size());
     for (const auto &hash : local_not_disk) {
-        std::ostringstream oss;
-        oss << hash;
-        local_not_disk_paths.push_back((dense_chunk_path_ / (oss.str() + ".pcd")).string());
+        local_not_disk_paths.push_back((dense_chunk_path_ / (to_hex_string(hash) + ".pcd")).string());
     }
 
     std::cout << "Paths: " << disk_not_local_paths.size() << " " << local_not_disk_paths.size() << std::endl;
@@ -89,14 +87,14 @@ std::tuple<double, std::vector<std::string>, std::vector<std::string>> Hylacomyl
     return std::make_tuple(similarity, disk_not_local_paths, local_not_disk_paths);
 }
 
-std::set<uint256_t> Hylacomylus::lookupDiskHashes()
+std::set<hash256_t> Hylacomylus::lookupDiskHashes()
 {
-    std::set<uint256_t> disk_hashes;
+    std::set<hash256_t> disk_hashes;
     for (const auto &entry : std::filesystem::directory_iterator(dense_chunk_path_)) {
         if (entry.is_regular_file()) {
             std::string filename {entry.path().filename().string()};
             try {
-                uint256_t hash {std::stoull(filename.substr(0, filename.find('.')))};
+                hash256_t hash {from_hex_string(filename.substr(0, filename.find('.')))};
                 disk_hashes.insert(hash);
             } catch (const std::invalid_argument &e) {}
         }
@@ -104,19 +102,19 @@ std::set<uint256_t> Hylacomylus::lookupDiskHashes()
     return disk_hashes;
 }
 
-std::set<uint256_t> Hylacomylus::lookupMemoryHashes()
+std::set<hash256_t> Hylacomylus::lookupMemoryHashes()
 {
-    std::set<uint256_t> hashes;
+    std::set<hash256_t> hashes;
     for (auto &entry : dense_atlas_) {
         hashes.insert(entry.first);
     }
     return hashes;
 }
 
-std::tuple<double, std::set<uint256_t>, std::set<uint256_t>> Hylacomylus::jaccardSimilarity(const std::set<uint256_t> &s1, const std::set<uint256_t> &s2)
+std::tuple<double, std::set<hash256_t>, std::set<hash256_t>> Hylacomylus::jaccardSimilarity(const std::set<hash256_t> &s1, const std::set<hash256_t> &s2)
 {
-    std::set<uint256_t> intersection_set;
-    std::set<uint256_t> union_set;
+    std::set<hash256_t> intersection_set;
+    std::set<hash256_t> union_set;
 
     std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(intersection_set, intersection_set.begin()));
     std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(union_set, union_set.begin()));
@@ -126,9 +124,9 @@ std::tuple<double, std::set<uint256_t>, std::set<uint256_t>> Hylacomylus::jaccar
     return std::make_tuple(similarity, intersection_set, union_set);
 }
 
-std::set<uint256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::set<uint256_t> &search_hashes, const std::optional<Sophus::SE3d> &projected_pose)
+std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::set<hash256_t> &search_hashes, const std::optional<Sophus::SE3d> &projected_pose)
 {
-    std::set<uint256_t> hashes;
+    std::set<hash256_t> hashes;
 
     const Eigen::Vector3d foci1 {pose.translation()};
     const Eigen::Vector3d foci2 {projected_pose.has_value() ? pose.translation() + 2 * (projected_pose.value().translation() - pose.translation()) : foci1};
@@ -136,14 +134,23 @@ std::set<uint256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, con
     const Eigen::Vector3d midpoint {(foci1 + foci2) / 2};
     const double a {std::max(radius, (foci1 - foci2).norm() / 2)};
 
+    std::cout << "Radius: " << radius << std::endl;
+    std::cout << "Foci1: " << foci1.transpose() << std::endl;
+    std::cout << "Foci2: " << foci2.transpose() << std::endl;
+
     for (const auto &hash : search_hashes) {
         const auto point {hasher_.parseHash(hash)};
+
+        std::cout << "Hash: " << to_hex_string(hash) << "-> Point: " << point.transpose() << std::endl;
+
         double distance1 {(point - foci1).norm()};
         double distance2 {(point - foci2).norm()};
         if (distance1 + distance2 <= 2 * a) {
             hashes.insert(hash);
         }
     }
+
+    std::cout << "Local hashes: " << hashes.size() << std::endl;
 
     return hashes;
 }
@@ -190,8 +197,8 @@ void Hylacomylus::unloadData() {
     }
 }
 
-std::set<uint256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose) {
-    std::set<uint256_t> hashes;
+std::set<hash256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose) {
+    std::set<hash256_t> hashes;
     double increment {static_cast<double>(config_.chunk_discretization) / 2};
 
     const Eigen::Vector3d foci1 {pose.translation()};
@@ -216,7 +223,7 @@ std::set<uint256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, co
     return hashes;
 }
 
-void Hylacomylus::expandStorage(const std::set<uint256_t> &hashes) {
+void Hylacomylus::expandStorage(const std::set<hash256_t> &hashes) {
     for (const auto &hash : hashes) {
         if (config_.maintain_dense_chunks) {
             if (!dense_atlas_.contains(hash)) {
@@ -234,9 +241,9 @@ void Hylacomylus::expandStorage(const std::set<uint256_t> &hashes) {
     }
 }
 
-void Hylacomylus::pruneStorage(const std::set<uint256_t> &hashes) {
+void Hylacomylus::pruneStorage(const std::set<hash256_t> &hashes) {
     if (config_.maintain_dense_chunks) {
-        std::vector<uint256_t> dense_erase_keys;
+        std::vector<hash256_t> dense_erase_keys;
         for (auto &entry : dense_atlas_) {
             if (!(hashes.contains(entry.first))) {
                 entry.second.unload();
@@ -249,7 +256,7 @@ void Hylacomylus::pruneStorage(const std::set<uint256_t> &hashes) {
     }
 
     if (config_.maintain_sparse_chunks) {
-        std::vector<uint256_t> sparse_erase_keys;
+        std::vector<hash256_t> sparse_erase_keys;
         for (auto &entry : sparse_atlas_) {
             if (!(hashes.contains(entry.first))) {
                 entry.second.unload();
@@ -262,7 +269,7 @@ void Hylacomylus::pruneStorage(const std::set<uint256_t> &hashes) {
     }
 }
 
-std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash) {
+std::set<hash256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash) {
     std::uint32_t collection_id {time_hash.value_or(Hylacomylus::generateTimeHash())};
 
     if (config_.save_dense_scans) {
@@ -275,9 +282,9 @@ std::set<uint256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
     PointCloud::Ptr transformed_cloud (new PointCloud);
     pcl::transformPointCloudWithNormals(*cloud, *transformed_cloud, pose.matrix());
 
-    std::set<uint256_t> scan_hashes;
+    std::set<hash256_t> scan_hashes;
     for (std::size_t i = 0; i < transformed_cloud->points.size(); i++) {
-        uint256_t hash {hasher_.generateHash(transformed_cloud->points[i])};
+        hash256_t hash {hasher_.generateHash(transformed_cloud->points[i])};
         if (!(scan_hashes.contains(hash))) {
             scan_hashes.insert(hash);
         }
@@ -338,7 +345,7 @@ void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collecti
     }
 }
 
-std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes) {
+std::set<hash256_t> Hylacomylus::updateHashMemory(std::set<hash256_t> &hashes) {
     if (config_.scan_memory_horizon == 0) { return hashes; }
 
     hash_memory_.push_back(hashes);
@@ -346,7 +353,7 @@ std::set<uint256_t> Hylacomylus::updateHashMemory(std::set<uint256_t> &hashes) {
         hash_memory_.pop_front();
     }
 
-    std::set<uint256_t> recent_hashes;
+    std::set<hash256_t> recent_hashes;
     for (const auto &hash_set : hash_memory_) {
         recent_hashes.insert(hash_set.begin(), hash_set.end());
     }
