@@ -1,7 +1,7 @@
 geometry_msgs/PoseStamped pose
 float64 similarity_threshold
 float64 radius
-string[] search_set
+string[] search_hashes
 ---
 float64 similarity
 string[] load_files

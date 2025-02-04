@@ -12,6 +12,7 @@ BT::PortsList ManageLocalStorage::providedPorts()
         BT::InputPort<std::string>("remote_hostname"),
         BT::InputPort<double>("similarity_threshold"),
         BT::InputPort<double>("radius"),
+        BT::InputPort<std::shared_ptr<std::deque<std::string>>>("search_hashes"),
         BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("load_files"),
         BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("unload_files"),
     };
@@ -44,6 +45,11 @@ BT::NodeStatus ManageLocalStorage::onStart()
     auto req {std::make_shared<Trigger::Request>()};
     req->similarity_threshold = threshold;
     req->radius = radius;
+
+    auto search_hashes_option {getInput<std::shared_ptr<std::deque<std::string>>>("search_hashes")};
+    if (search_hashes_option.has_value()) {
+        req->search_hashes = std::vector<std::string>(search_hashes_option.value()->begin(), search_hashes_option.value()->end());
+    }
 
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Manage local storage " << result << "...");

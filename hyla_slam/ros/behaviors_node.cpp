@@ -182,13 +182,13 @@ void BehaviorsNode::manageLocalStorage(const std::shared_ptr<hyla_slam_interface
     Eigen::Vector3d position(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
     auto pose_estimate {Sophus::SE3d(orientation, position)};
 
-    std::set<uint256_t> search_set;
-    for (const auto &hash_str : request->search_set) {
+    std::set<uint256_t> search_hashes;
+    for (const auto &hash_str : request->search_hashes) {
         uint256_t hash = uint256_t(hash_str);
-        search_set.insert(hash);
+        search_hashes.insert(hash);
     }
 
-    auto [similarity, disk_not_local, local_not_disk] = mapper_->manageDisk(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, search_set);
+    auto [similarity, disk_not_local, local_not_disk] = mapper_->manageDisk(pose_estimate, request->similarity_threshold, request->radius, std::nullopt, search_hashes);
 
     response->similarity = similarity;
     
