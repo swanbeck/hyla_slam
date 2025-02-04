@@ -16,14 +16,11 @@
 #include <Eigen/Dense>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
-// #include <boost/multiprecision/cpp_int.hpp>
 
 #include "surface_repair_common/point_type.h"
 #include "chunk.hpp"
 #include "hasher.hpp"
 #include "types.hpp"
-
-// using namespace boost::multiprecision;
 
 namespace hylacomylus {
 

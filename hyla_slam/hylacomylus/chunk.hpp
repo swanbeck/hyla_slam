@@ -4,12 +4,9 @@
 #include <sstream>
 #include <optional>
 #include <filesystem>
-// #include <boost/multiprecision/cpp_int.hpp>
 
 #include "types.hpp"
 #include "surface_repair_common/point_type.h"
-
-// using namespace boost::multiprecision;
 
 namespace hylacomylus {
 

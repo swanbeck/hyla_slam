@@ -4,7 +4,6 @@
 #include <mutex>
 #include <chrono>
 #include <algorithm>
-// #include <boost/multiprecision/cpp_int.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <pcl_conversions/pcl_conversions.h>
@@ -26,8 +25,6 @@
 #include "hyla_slam_interfaces/srv/lookup_hashes.hpp"
 #include "hyla_slam_interfaces/srv/manage_local_storage.hpp"
 #include "hyla_slam_interfaces/srv/set_pose.hpp"
-
-// using namespace boost::multiprecision;
 
 namespace hyla_slam {
 
