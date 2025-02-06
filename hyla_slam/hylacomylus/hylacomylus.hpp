@@ -30,7 +30,7 @@ public:
     Hylacomylus(const MappingConfig &config);
     ~Hylacomylus();
 
-    void update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose);
+    void update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const bool &unload_data=true);
     PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     void unloadData();

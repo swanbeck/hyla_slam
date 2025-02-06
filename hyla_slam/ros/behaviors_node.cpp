@@ -362,7 +362,7 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     // update the mapper
     hylacomylus::PointCloud::Ptr point_cloud (new hylacomylus::PointCloud);
     pcl::fromROSMsg(request->cloud, *point_cloud);
-    mapper_->update(point_cloud, transform);
+    mapper_->update(point_cloud, transform, request->unload_data);
     
     // update mapping reference pose
     mapping_reference_pose_ = transform;
@@ -370,6 +370,8 @@ void BehaviorsNode::indexData(const std::shared_ptr<hyla_slam_interfaces::srv::I
     auto end {std::chrono::high_resolution_clock::now()};
     std::chrono::duration<double, std::milli> elapsed {end - start};
     RCLCPP_DEBUG_STREAM(this->get_logger(), "indexData: " << elapsed.count() << "ms");
+
+    response->time_ms = elapsed.count();
 }
 
 // TODO consider relocating this

@@ -8,21 +8,29 @@ Hylacomylus::Hylacomylus(const MappingConfig &config)
     if (!(std::filesystem::exists(config.data_dir))) {
         std::filesystem::create_directories(config.data_dir);
     }
-    dense_chunk_path_ = std::filesystem::path(config.data_dir).append("dense_chunks");
-    if (!(std::filesystem::exists(dense_chunk_path_))) {
-        std::filesystem::create_directories(dense_chunk_path_);
+    if (config.maintain_dense_chunks) {
+        dense_chunk_path_ = std::filesystem::path(config.data_dir).append("dense_chunks");
+        if (!(std::filesystem::exists(dense_chunk_path_))) {
+            std::filesystem::create_directories(dense_chunk_path_);
+        }
     }
-    dense_scan_path_ = std::filesystem::path(config.data_dir).append("dense_scans");
-    if (!(std::filesystem::exists(dense_scan_path_))) {
-        std::filesystem::create_directories(dense_scan_path_);
+    if (config.save_dense_scans) {
+        dense_scan_path_ = std::filesystem::path(config.data_dir).append("dense_scans");
+        if (!(std::filesystem::exists(dense_scan_path_))) {
+            std::filesystem::create_directories(dense_scan_path_);
+        }
     }
-    sparse_chunk_path_ = std::filesystem::path(config.data_dir).append("sparse_chunks");
-    if (!(std::filesystem::exists(sparse_chunk_path_))) {
-        std::filesystem::create_directories(sparse_chunk_path_);
+    if (config.maintain_sparse_chunks) {
+        sparse_chunk_path_ = std::filesystem::path(config.data_dir).append("sparse_chunks");
+        if (!(std::filesystem::exists(sparse_chunk_path_))) {
+            std::filesystem::create_directories(sparse_chunk_path_);
+        }
     }
-    sparse_scan_path_ = std::filesystem::path(config.data_dir).append("sparse_scans");
-    if (!(std::filesystem::exists(sparse_scan_path_))) {
-        std::filesystem::create_directories(sparse_scan_path_);
+    if (config.save_sparse_scans) {
+        sparse_scan_path_ = std::filesystem::path(config.data_dir).append("sparse_scans");
+        if (!(std::filesystem::exists(sparse_scan_path_))) {
+            std::filesystem::create_directories(sparse_scan_path_);
+        }
     }
 }
 
@@ -127,11 +135,13 @@ std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, con
     return hashes;
 }
 
-void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose)
+void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const bool &unload_data)
 {
     auto scan_hashes {indexData(cloud, pose)};
     auto recent_hashes {updateHashMemory(scan_hashes)};
-    pruneStorage(recent_hashes);
+    if (unload_data) {
+        pruneStorage(recent_hashes);
+    }
     expandStorage(recent_hashes);
 }
 

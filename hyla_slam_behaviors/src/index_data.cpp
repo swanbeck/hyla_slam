@@ -13,6 +13,8 @@ BT::PortsList IndexData::providedPorts()
         BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud"),
         BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform"),
         BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform"),
+        BT::InputPort<bool>("unload_data"),
+        BT::OutputPort<double>("time_ms"),
     };
 }
 
@@ -24,6 +26,7 @@ BT::NodeStatus IndexData::onStart()
     auto local_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform")};
     auto global_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform")};
     auto cloud = cloud_option.value();
+    auto unload_data_option {getInput<bool>("unload_data")};
 
     std::string service_handle {"hyla_slam/index_data"};
     auto remote_hostname {getInput<std::string>("remote_hostname")};
@@ -54,6 +57,11 @@ BT::NodeStatus IndexData::onStart()
             req->local_transform = *(local_transform_option.value());
         }
     }
+
+    if (unload_data_option.value_or(false)) {
+        req->unload_data = true;
+    }
+
     request_future_ = service_client_->async_send_request(req);
     RCLCPP_INFO_STREAM(node_->get_logger(), "Index data " << result << "...");
 
@@ -77,6 +85,7 @@ BT::NodeStatus IndexData::onRunning()
             auto return_status {BT::NodeStatus::SUCCESS}; 
             auto resp {request_future_->get()};
             request_future_ = std::nullopt;
+            setOutput<double>("time_ms", resp->time_ms);
             RCLCPP_INFO_STREAM(node_->get_logger(), "Index data responded! Returning " << return_status << "!");
             return return_status;
         }
