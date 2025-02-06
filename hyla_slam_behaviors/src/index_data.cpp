@@ -58,8 +58,8 @@ BT::NodeStatus IndexData::onStart()
         }
     }
 
-    if (unload_data_option.value_or(false)) {
-        req->unload_data = true;
+    if (unload_data_option.has_value()) {
+        req->unload_data = unload_data_option.value();
     }
 
     request_future_ = service_client_->async_send_request(req);
