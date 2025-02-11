@@ -407,7 +407,6 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
 {
     auto start {std::chrono::high_resolution_clock::now()};
 
-    // rescope map
     Sophus::SE3d current_pose;
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
@@ -425,7 +424,6 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
         projected_pose = current_pose * delta;
     }
     
-    // TODO restore this once basic functionality works
     auto map {request->dense ? mapper_->denseMap(current_pose, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->radius, projected_pose)};
 
     // convert map to PC2 and return
