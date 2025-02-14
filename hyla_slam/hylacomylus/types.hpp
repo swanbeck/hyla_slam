@@ -23,7 +23,7 @@ struct hash256_t {
         if (n2 != other.n2) return n2 < other.n2;
         return n3 < other.n3;
     }
-};
+}; // struct hash256_t
 
 std::string to_hex_string(const hash256_t &hash);
 hash256_t from_hex_string(const std::string &hex_str);

@@ -282,7 +282,6 @@ void BehaviorsNode::setLocalizationEstimate(const std::shared_ptr<hyla_slam_inte
     RCLCPP_DEBUG_STREAM(this->get_logger(), "setLocalizationEstimate: " << elapsed.count() << "ms");
 }
 
-// TODO
 void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     auto start {std::chrono::high_resolution_clock::now()};
@@ -294,7 +293,6 @@ void BehaviorsNode::updateLocalizationMap(const std::shared_ptr<std_srvs::srv::T
         map_lidar_estimate = localizer_->pose();
     }
 
-    // hylacomylus::PointCloud::Ptr dummy_cloud (new hylacomylus::PointCloud);
     // localization_reference_hashes_ = mapper_->update(dummy_cloud, map_lidar_estimate);
     localization_reference_pose_ = map_lidar_estimate;
 
@@ -382,7 +380,7 @@ void BehaviorsNode::getMapSimilarity(const std::shared_ptr<hyla_slam_interfaces:
         return;
     }
 
-    // compute Jaccard Similarity between sets
+    // compute IOU between sets
     auto jaccard_similarity = [](const std::set<hash256_t> &s1, const std::set<hash256_t> &s2) -> double {
         std::set<hash256_t> intersection_set;
         std::set<hash256_t> union_set;
