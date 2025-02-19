@@ -422,7 +422,7 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
         projected_pose = current_pose * delta;
     }
     
-    auto map {request->dense ? mapper_->denseMap(current_pose, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->radius, projected_pose)};
+    auto map {request->dense ? mapper_->denseMap(current_pose, request->all_memory_data, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->all_memory_data, request->radius, projected_pose)};
 
     // convert map to PC2 and return
     sensor_msgs::msg::PointCloud2 msg;

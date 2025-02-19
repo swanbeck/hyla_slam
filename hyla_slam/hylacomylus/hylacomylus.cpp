@@ -113,7 +113,7 @@ std::tuple<double, std::set<hash256_t>, std::set<hash256_t>> Hylacomylus::jaccar
     return std::make_tuple(similarity, intersection_set, union_set);
 }
 
-std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::set<hash256_t> &search_hashes, const std::optional<Sophus::SE3d> &projected_pose)
+std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::set<hash256_t> &search_hashes, const std::optional<Sophus::SE3d> &projected_pose) 
 {
     std::set<hash256_t> hashes;
 
@@ -135,7 +135,7 @@ std::set<hash256_t> Hylacomylus::searchLocalHashes(const Sophus::SE3d &pose, con
     return hashes;
 }
 
-void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const bool &unload_data)
+void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const bool &unload_data) 
 {
     auto scan_hashes {indexData(cloud, pose)};
     auto recent_hashes {updateHashMemory(scan_hashes)};
@@ -145,31 +145,46 @@ void Hylacomylus::update(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const
     expandStorage(recent_hashes);
 }
 
-PointCloud::Ptr Hylacomylus::sparseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
-    const auto hashes {computeLocalHashes(pose, radius.has_value() ? radius.value() : config_.sparse_map_radius, projected_pose)};
-    expandStorage(hashes);
-
+PointCloud::Ptr Hylacomylus::sparseMap(const Sophus::SE3d &pose, const bool &all_memory_data, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) 
+{
     PointCloud::Ptr map (new PointCloud);
-    for (const auto &hash : hashes) {
-        *map += *(sparse_atlas_.at(hash).chunk);
-    }
-
-    return map;
-}
-
-PointCloud::Ptr Hylacomylus::denseMap(const Sophus::SE3d &pose, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) {
-    const auto hashes {computeLocalHashes(pose, radius.has_value() ? radius.value() : config_.dense_map_radius, projected_pose)};
-    expandStorage(hashes);
     
-    PointCloud::Ptr map (new PointCloud);
-    for (const auto &hash : hashes) {
-        *map += *(dense_atlas_.at(hash).chunk);
+    if (all_memory_data) {
+        for (const auto &pair : sparse_atlas_) {
+            *map += *(pair.second.chunk);
+        }
+    } else {
+        const auto hashes {computeLocalHashes(pose, radius.has_value() ? radius.value() : config_.sparse_map_radius, projected_pose)};
+        expandStorage(hashes);
+        for (const auto &hash : hashes) {
+            *map += *(sparse_atlas_.at(hash).chunk);
+        }
     }
 
     return map;
 }
 
-void Hylacomylus::unloadData() {
+PointCloud::Ptr Hylacomylus::denseMap(const Sophus::SE3d &pose, const bool &all_memory_data, const std::optional<double> &radius, const std::optional<Sophus::SE3d> &projected_pose) 
+{
+    PointCloud::Ptr map (new PointCloud);
+
+    if (all_memory_data) {
+        for (const auto &pair : dense_atlas_) {
+            *map += *(pair.second.chunk);
+        }
+    } else {
+        const auto hashes {computeLocalHashes(pose, radius.has_value() ? radius.value() : config_.dense_map_radius, projected_pose)};
+        expandStorage(hashes);
+        for (const auto &hash : hashes) {
+            *map += *(dense_atlas_.at(hash).chunk);
+        }
+    }
+
+    return map;
+}
+
+void Hylacomylus::unloadData() 
+{
     for (auto &entry : dense_atlas_) {
         entry.second.unload();
     }
@@ -179,7 +194,8 @@ void Hylacomylus::unloadData() {
     }
 }
 
-std::set<hash256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose) {
+std::set<hash256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose) 
+{
     std::set<hash256_t> hashes;
     double increment {static_cast<double>(config_.chunk_discretization) / 2};
 
@@ -205,7 +221,8 @@ std::set<hash256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, co
     return hashes;
 }
 
-void Hylacomylus::expandStorage(const std::set<hash256_t> &hashes) {
+void Hylacomylus::expandStorage(const std::set<hash256_t> &hashes) 
+{
     for (const auto &hash : hashes) {
         if (config_.maintain_dense_chunks) {
             if (!dense_atlas_.contains(hash)) {
@@ -223,7 +240,8 @@ void Hylacomylus::expandStorage(const std::set<hash256_t> &hashes) {
     }
 }
 
-void Hylacomylus::pruneStorage(const std::set<hash256_t> &hashes) {
+void Hylacomylus::pruneStorage(const std::set<hash256_t> &hashes) 
+{
     if (config_.maintain_dense_chunks) {
         std::vector<hash256_t> dense_erase_keys;
         for (auto &entry : dense_atlas_) {
@@ -251,7 +269,8 @@ void Hylacomylus::pruneStorage(const std::set<hash256_t> &hashes) {
     }
 }
 
-std::set<hash256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash) {
+std::set<hash256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus::SE3d &pose, const std::optional<std::uint32_t> &time_hash) 
+{
     std::uint32_t collection_id {time_hash.value_or(Hylacomylus::generateTimeHash())};
 
     if (config_.save_dense_scans) {
@@ -306,7 +325,8 @@ std::set<hash256_t> Hylacomylus::indexData(PointCloud::Ptr &cloud, const Sophus:
     return scan_hashes;
 }
 
-void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collection_id, const bool voxelize) {
+void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collection_id, const bool voxelize) 
+{
     std::filesystem::path save_path = voxelize ? sparse_scan_path_ / (std::to_string(collection_id) + ".pcd") : dense_scan_path_ / (std::to_string(collection_id) + ".pcd");
 
     if (std::filesystem::exists(save_path)) {
@@ -327,7 +347,8 @@ void Hylacomylus::saveScan(PointCloud::Ptr &cloud, const std::uint32_t &collecti
     }
 }
 
-std::set<hash256_t> Hylacomylus::updateHashMemory(std::set<hash256_t> &hashes) {
+std::set<hash256_t> Hylacomylus::updateHashMemory(std::set<hash256_t> &hashes) 
+{
     if (config_.scan_memory_horizon == 0) { return hashes; }
 
     hash_memory_.push_back(hashes);
@@ -343,7 +364,8 @@ std::set<hash256_t> Hylacomylus::updateHashMemory(std::set<hash256_t> &hashes) {
     return recent_hashes;
 }
 
-std::uint32_t Hylacomylus::generateTimeHash() {
+std::uint32_t Hylacomylus::generateTimeHash() 
+{
     auto currentTime = std::chrono::system_clock::now();
     auto durationSinceEpoch = currentTime.time_since_epoch();
     return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(durationSinceEpoch).count() % UINT32_MAX);

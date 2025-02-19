@@ -1,3 +1,4 @@
+bool all_memory_data false
 bool dense true
 float64 radius 10.0
 ---
