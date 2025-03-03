@@ -25,7 +25,7 @@ BT::NodeStatus IndexData::onStart()
     auto cloud_option {getInput<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud")};
     auto local_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform")};
     auto global_transform_option {getInput<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform")};
-    auto cloud = cloud_option.value();
+    auto cloud = cloud_option.value_or(std::make_shared<sensor_msgs::msg::PointCloud2>());
     auto unload_data_option {getInput<bool>("unload_data")};
 
     std::string service_handle {"hyla_slam/index_data"};

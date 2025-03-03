@@ -83,6 +83,12 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
         rmw_qos_profile_default,
         service_cb_group_
     );
+    load_data_server_ = this->create_service<std_srvs::srv::Trigger>(
+        "~/load_data",
+        std::bind(&BehaviorsNode::loadData, this, std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_default,
+        service_cb_group_
+    );
     get_localization_displacement_server_ = this->create_service<hyla_slam_interfaces::srv::GetDisplacement>(
         "~/get_localization_displacement",
         [this](const std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Request>, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response) {
@@ -406,7 +412,20 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     auto start {std::chrono::high_resolution_clock::now()};
 
     Sophus::SE3d current_pose;
-    {
+    if (!localization_enabled_) {
+        geometry_msgs::msg::TransformStamped robot_transform;
+        try {
+            robot_transform = tf_buffer_->lookupTransform(
+                params_.fixed_frame,
+                params_.robot_frame,
+                tf2::TimePointZero
+            );
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_WARN(this->get_logger(), "Could not transform %s to %s: %s", params_.robot_frame.c_str(), params_.fixed_frame.c_str(), ex.what());
+            return;
+        }
+        current_pose = tf2::transformToSophus(robot_transform);
+    } else {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         current_pose = localizer_->pose();
     }
@@ -415,11 +434,16 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
 
     // compute the transform between the last mapping reference pose and the current pose
     std::optional<Sophus::SE3d> projected_pose {std::nullopt};
+
     if (mapping_reference_pose_.has_value()) {
         Sophus::SE3d delta {mapping_reference_pose_.value().inverse() * current_pose};
 
         // project the current_pose forward
         projected_pose = current_pose * delta;
+    }
+
+    if (!localization_enabled_) {
+        mapping_reference_pose_ = current_pose;
     }
     
     auto map {request->dense ? mapper_->denseMap(current_pose, request->all_memory_data, request->radius, projected_pose) : mapper_->sparseMap(current_pose, request->all_memory_data, request->radius, projected_pose)};
@@ -571,6 +595,16 @@ void BehaviorsNode::unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Req
     response->success = true;
     response->message = msg;
 }
+
+void BehaviorsNode::loadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+    mapper_->loadData();
+    std::string msg {"Loaded data from disk to memory!"};
+    RCLCPP_INFO(this->get_logger(), msg.c_str());
+    response->success = true;
+    response->message = msg;
+}
+
 
 } // namespace hyla_slam
 

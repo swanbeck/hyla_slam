@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <chrono>
+#include <deque>
 #include <algorithm>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -49,6 +50,7 @@ private:
     void enableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void disableLocalization(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void unloadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    void loadData(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response);
     void updateLocalization(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &raw_msg);
     
     void getDisplacement(const Capability capability, std::shared_ptr<hyla_slam_interfaces::srv::GetDisplacement::Response> response);
@@ -115,6 +117,7 @@ private:
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> enable_localization_server_;
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> disable_localization_server_;
     std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> unload_data_server_;
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Trigger>> load_data_server_;
 
     std::optional<Sophus::SE3d> localization_reference_pose_;
     std::optional<Sophus::SE3d> mapping_reference_pose_;

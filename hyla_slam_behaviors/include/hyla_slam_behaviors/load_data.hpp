@@ -4,18 +4,17 @@
 #include <memory>
 
 #include <rclcpp/rclcpp.hpp>
-#include <hyla_slam_interfaces/srv/get_map.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <behaviortree_cpp/action_node.h>
 
 namespace hyla_slam_behaviors {
 
-class GetMap : public BT::StatefulActionNode
+class LoadData : public BT::StatefulActionNode
 {
 public:
-    using Trigger = hyla_slam_interfaces::srv::GetMap;
+    using Trigger = std_srvs::srv::Trigger;
 
-    GetMap(const std::string name, const BT::NodeConfig &config);
+    LoadData(const std::string name, const BT::NodeConfig &config);
 
     static BT::PortsList providedPorts();
 
@@ -30,6 +29,6 @@ private:
     std::shared_ptr<rclcpp::Client<Trigger>> service_client_;
     std::optional<rclcpp::Client<Trigger>::FutureAndRequestId> request_future_;
 
-}; // class GetMap
+}; // class LoadData
 
 } // namespace hyla_slam_behaviors

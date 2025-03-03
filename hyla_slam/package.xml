@@ -2,7 +2,7 @@
 <package format="3">
     <name>hyla_slam</name>
     <version>1.0.0</version>
-    <description>KISS-ICP ROS 2 Wrapper</description>
+    <description>Hyla-SLAM ROS2</description>
     <maintainer email="steven.swanbeck@gmail.com">steven</maintainer>
     <license>MIT</license>
 

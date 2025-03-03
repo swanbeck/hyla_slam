@@ -194,6 +194,27 @@ void Hylacomylus::unloadData()
     }
 }
 
+void Hylacomylus::loadData()
+{
+    if (config_.maintain_dense_chunks) {
+        for (const auto &entry : std::filesystem::directory_iterator(dense_chunk_path_)) {
+            if (entry.is_regular_file()) {
+                std::string filename {entry.path().filename().string()};
+                try {
+                    hash256_t hash {from_hex_string(filename.substr(0, filename.find('.')))};
+    
+                    if (config_.maintain_dense_chunks) {
+                        dense_atlas_.insert({hash, Chunk(hash, dense_chunk_path_.string())});
+                        dense_atlas_.at(hash).load();
+                    }
+                } catch (const std::invalid_argument &e) {
+                    // Handle invalid hash string
+                }
+            }
+        }
+    }
+}
+
 std::set<hash256_t> Hylacomylus::computeLocalHashes(const Sophus::SE3d &pose, const double &radius, const std::optional<Sophus::SE3d> &projected_pose) 
 {
     std::set<hash256_t> hashes;

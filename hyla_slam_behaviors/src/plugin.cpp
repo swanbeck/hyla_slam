@@ -9,8 +9,10 @@
 #include "hyla_slam_behaviors/get_mapping_displacement.hpp"
 #include "hyla_slam_behaviors/get_pose.hpp"
 #include "hyla_slam_behaviors/index_data.hpp"
+#include "hyla_slam_behaviors/load_data.hpp"
 #include "hyla_slam_behaviors/lookup_hashes.hpp"
 #include "hyla_slam_behaviors/manage_local_storage.hpp"
+#include "hyla_slam_behaviors/publish_cloud.hpp"
 #include "hyla_slam_behaviors/set_localization_estimate.hpp"
 #include "hyla_slam_behaviors/spawn_robot_marker.hpp"
 #include "hyla_slam_behaviors/unload_data.hpp"
@@ -27,8 +29,10 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory &factory) {
     factory.registerNodeType<hyla_slam_behaviors::GetMappingDisplacement>("GetMappingDisplacement");
     factory.registerNodeType<hyla_slam_behaviors::GetPose>("GetPose");
     factory.registerNodeType<hyla_slam_behaviors::IndexData>("IndexData");
+    factory.registerNodeType<hyla_slam_behaviors::LoadData>("LoadData");
     factory.registerNodeType<hyla_slam_behaviors::LookupHashes>("LookupHashes");
     factory.registerNodeType<hyla_slam_behaviors::ManageLocalStorage>("ManageLocalStorage");
+    factory.registerNodeType<hyla_slam_behaviors::PublishCloud>("PublishCloud");
     factory.registerNodeType<hyla_slam_behaviors::SetLocalizationEstimate>("SetLocalizationEstimate");
     factory.registerNodeType<hyla_slam_behaviors::SpawnRobotMarker>("SpawnRobotMarker");
     factory.registerNodeType<hyla_slam_behaviors::UnloadData>("UnloadData");

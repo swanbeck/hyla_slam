@@ -34,6 +34,7 @@ public:
     PointCloud::Ptr sparseMap(const Sophus::SE3d &pose, const bool &all_memory_data=false, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     PointCloud::Ptr denseMap(const Sophus::SE3d &pose, const bool &all_memory_data=false, const std::optional<double> &radius=std::nullopt, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt);
     void unloadData();
+    void loadData();
 
     std::tuple<double, std::vector<std::string>, std::vector<std::string>> manageDisk(const Sophus::SE3d &pose, const double &threshold, const double &radius, const std::optional<Sophus::SE3d> &projected_pose=std::nullopt, const std::optional<std::set<hash256_t>> &search_hash_set=std::nullopt);
 
