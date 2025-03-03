@@ -1,5 +1,6 @@
 bool all_memory_data false
 bool dense true
+bool project true
 float64 radius 10.0
 ---
 sensor_msgs/PointCloud2 map

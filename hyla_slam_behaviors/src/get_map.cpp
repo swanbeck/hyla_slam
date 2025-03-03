@@ -12,6 +12,7 @@ BT::PortsList GetMap::providedPorts()
         BT::InputPort<std::string>("remote_hostname"),
         BT::InputPort<bool>("all_memory_data"),
         BT::InputPort<bool>("dense"),
+        BT::InputPort<bool>("project"),
         BT::InputPort<double>("radius"),
         BT::OutputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("map"),
     };
@@ -40,6 +41,7 @@ BT::NodeStatus GetMap::onStart()
 
     auto req {std::make_shared<Trigger::Request>()};
     req->dense = getInput<bool>("dense").value_or(true);
+    req->project = getInput<bool>("project").value_or(true);
     req->radius = getInput<double>("radius").value_or(10.0);
     req->all_memory_data = getInput<bool>("all_memory_data").value_or(false);
 

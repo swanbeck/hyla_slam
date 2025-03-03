@@ -435,11 +435,13 @@ void BehaviorsNode::getMap(const std::shared_ptr<hyla_slam_interfaces::srv::GetM
     // compute the transform between the last mapping reference pose and the current pose
     std::optional<Sophus::SE3d> projected_pose {std::nullopt};
 
-    if (mapping_reference_pose_.has_value()) {
-        Sophus::SE3d delta {mapping_reference_pose_.value().inverse() * current_pose};
-
-        // project the current_pose forward
-        projected_pose = current_pose * delta;
+    if (request->project == true) {
+        if (mapping_reference_pose_.has_value()) {
+            Sophus::SE3d delta {mapping_reference_pose_.value().inverse() * current_pose};
+    
+            // project the current_pose forward
+            projected_pose = current_pose * delta;
+        }
     }
 
     if (!localization_enabled_) {
