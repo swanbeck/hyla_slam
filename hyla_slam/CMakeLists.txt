@@ -47,15 +47,15 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-# hyla_kiss
-add_library(hyla_kiss STATIC
-    hyla_kiss/hyla_kiss.hpp
-    hyla_kiss/hyla_kiss.cpp
-    hyla_kiss/kiss_icp_utils.hpp
+# hyla_icp
+add_library(hyla_icp STATIC
+    hyla_icp/hyla_icp.hpp
+    hyla_icp/hyla_icp.cpp
+    hyla_icp/kiss_icp_utils.hpp
 )
-add_dependencies(hyla_kiss kiss_icp_core)
-target_include_directories(hyla_kiss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(hyla_kiss PUBLIC kiss_icp_core)
+add_dependencies(hyla_icp kiss_icp_core)
+target_include_directories(hyla_icp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(hyla_icp PUBLIC kiss_icp_core)
 
 # hylacomylus
 add_library(hylacomylus STATIC
@@ -88,7 +88,7 @@ ament_target_dependencies(behaviors_node
 target_link_libraries(behaviors_node
     ${PCL_LIBRARIES}
     hylacomylus
-    hyla_kiss
+    hyla_icp
     hyla_slam_parameters
 )
 

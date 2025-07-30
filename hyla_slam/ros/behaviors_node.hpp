@@ -13,8 +13,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 
-#include "hyla_kiss/hyla_kiss.hpp"
-#include "hyla_kiss/kiss_icp_utils.hpp"
+#include "hyla_icp/hyla_icp.hpp"
+#include "hyla_icp/kiss_icp_utils.hpp"
 #include "hylacomylus/hylacomylus.hpp"
 #include "hylacomylus/types.hpp"
 #include "hyla_slam/hyla_slam_parameters.hpp"
@@ -104,13 +104,13 @@ private:
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     std::unique_ptr<hylacomylus::Hylacomylus> mapper_;
-    std::unique_ptr<hyla_kiss::HylaKiss> localizer_;
+    std::unique_ptr<hyla_icp::HylaIcp> localizer_;
 
     std::shared_ptr<hyla_slam::ParamListener> param_listener_;
     hyla_slam::Params params_;
 
     hylacomylus::MappingConfig mapping_config_;
-    hyla_kiss::KissConfig localization_config_;
+    hyla_icp::KissConfig localization_config_;
 
     bool localization_enabled_;
 

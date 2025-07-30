@@ -40,7 +40,7 @@ BehaviorsNode::BehaviorsNode(const rclcpp::NodeOptions &opts)
     localization_config_.convergence_criterion = localization_params.convergence_criterion;
     localization_config_.max_num_threads = localization_params.max_num_threads;
     localization_config_.deskew = localization_params.deskew;
-    localizer_ = std::make_unique<hyla_kiss::HylaKiss>(localization_config_);
+    localizer_ = std::make_unique<hyla_icp::HylaIcp>(localization_config_);
 
     // create ROS stuff
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());

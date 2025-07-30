@@ -1,17 +1,17 @@
-#include "hyla_kiss.hpp"
+#include "hyla_icp.hpp"
 #include <iostream>
 #include <cmath>
 
-namespace hyla_kiss {
+namespace hyla_icp {
 
-HylaKiss::HylaKiss(const KissConfig &config)
+HylaIcp::HylaIcp(const KissConfig &config)
     : config_(config),
       registration_(config.max_num_iterations, config.convergence_criterion, config.max_num_threads),
       local_map_(config.voxel_size, config.max_range, config.max_points_per_voxel),
       adaptive_threshold_(config.initial_threshold, config.min_motion_th, config.max_range)
 {}
 
-Vector3dVectorTuple HylaKiss::registerFrame(const std::vector<Eigen::Vector3d> &frame)
+Vector3dVectorTuple HylaIcp::registerFrame(const std::vector<Eigen::Vector3d> &frame)
 {
     // preprocess the input cloud
     const auto &cropped_frame = kiss_icp::Preprocess(frame, config_.max_range, config_.min_range);
@@ -30,7 +30,7 @@ Vector3dVectorTuple HylaKiss::registerFrame(const std::vector<Eigen::Vector3d> &
         auto dt {std::chrono::duration<double>(current_time - *previous_t_)};
 
         if (previous_dt_ != nullptr) {
-            extrapolated_delta = HylaKiss::extrapolateTransform(last_delta_, previous_dt_->count(), dt.count(), sigma);
+            extrapolated_delta = HylaIcp::extrapolateTransform(last_delta_, previous_dt_->count(), dt.count(), sigma);
         }
 
         previous_dt_ = std::make_unique<std::chrono::duration<double>>(dt);
@@ -58,7 +58,7 @@ Vector3dVectorTuple HylaKiss::registerFrame(const std::vector<Eigen::Vector3d> &
     return {frame, source};
 }
 
-Vector3dVectorTuple HylaKiss::voxelize(const std::vector<Eigen::Vector3d> &frame) const
+Vector3dVectorTuple HylaIcp::voxelize(const std::vector<Eigen::Vector3d> &frame) const
 {
     const auto voxel_size = config_.voxel_size;
     const auto frame_downsample = kiss_icp::VoxelDownsample(frame, voxel_size * 0.5);
@@ -66,7 +66,7 @@ Vector3dVectorTuple HylaKiss::voxelize(const std::vector<Eigen::Vector3d> &frame
     return {source, frame_downsample};
 }
 
-void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
+void HylaIcp::setMap(const std::vector<Eigen::Vector3d> &map)
 {
     // save current map (to be reintroduced once new map has been set)
     auto previous_map {local_map_.Pointcloud()};
@@ -79,27 +79,21 @@ void HylaKiss::setMap(const std::vector<Eigen::Vector3d> &map)
     // now reintroduce previous data (useful to bias toward set map but also maintain flexibility for what robot sees online)
     local_map_.Update(previous_map, last_pose_.translation());
 
-    // TODO add in adpative threshold update here to make more robust to large changes that may be introduced when localization_map is added? 
-    // adaptive_threshold_.UpdateModelDeviation();
-    // or maybe it just makes sense to reset it altogether?
     adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
 }
 
-void HylaKiss::setPose(const Sophus::SE3d &pose)
+void HylaIcp::setPose(const Sophus::SE3d &pose)
 {
     last_pose_ = pose;
-    // TODO should last_delta be updated as well?
-    // last_delta_ = ;
     adaptive_threshold_ = kiss_icp::AdaptiveThreshold(config_.initial_threshold, config_.min_motion_th, config_.max_range);
 }
 
-Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, const double delta_t_initial, const double delta_t_new, double &sigma) {
+Sophus::SE3d HylaIcp::extrapolateTransform(const Sophus::SE3d &T_initial, const double delta_t_initial, const double delta_t_new, double &sigma) {
     Eigen::Matrix3d R_initial {T_initial.rotationMatrix()};
     Eigen::Vector3d t_initial {T_initial.translation()};
 
     // make sure dts are not crazy far apart
     if (delta_t_initial <= 0 || delta_t_new <= 0) {
-        // std::cout << "One or both delta_t values are less than or equal to zero!" << std::endl;
         return T_initial;
     }
 
@@ -112,11 +106,7 @@ Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, const
 
     double max_c {2.0};
     if (dt_scalar > max_c) {
-        // std::cout << "delta_t_new (" << delta_t_new << ") is more than " << max_c << "x delta_t_initial (" << delta_t_initial << "). This is likely to cause errors! Capping the dt at " << max_c << " the previous..." << std::endl;
         dt_scalar = max_c;
-
-        // double c {max_c - log(max_c)};
-        // dt_scalar = 1 + log(dt_scalar) + c; // note this is linear until max_c, then becomes logarithmic
     }
 
     // extrapolate translation
@@ -134,4 +124,4 @@ Sophus::SE3d HylaKiss::extrapolateTransform(const Sophus::SE3d &T_initial, const
     return T_new;
 }
 
-} // namespace hyla_kiss
+} // namespace hyla_icp

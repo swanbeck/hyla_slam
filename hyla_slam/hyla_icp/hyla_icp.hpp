@@ -14,7 +14,7 @@
 #include "kiss_icp/core/Threshold.hpp"
 #include "kiss_icp/core/VoxelHashMap.hpp"
 
-namespace hyla_kiss {
+namespace hyla_icp {
 
 struct KissConfig {
     // map params
@@ -39,10 +39,10 @@ struct KissConfig {
 using Vector3dVector = std::vector<Eigen::Vector3d>;
 using Vector3dVectorTuple = std::tuple<Vector3dVector, Vector3dVector>;
 
-class HylaKiss
+class HylaIcp
 {
 public:
-    HylaKiss(const KissConfig &config);
+    HylaIcp(const KissConfig &config);
 
 public:
     Vector3dVectorTuple registerFrame(const std::vector<Eigen::Vector3d> &frame);
@@ -79,6 +79,6 @@ private:
     std::unique_ptr<std::chrono::duration<double>> previous_dt_;
 
 
-}; // class HylaKiss
+}; // class HylaIcp
 
-} // namespace hyla_kiss
+} // namespace hyla_icp
