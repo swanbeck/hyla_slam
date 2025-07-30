@@ -1,6 +1,6 @@
-[submodule "hyla_slam/include/hyla_slam/surface_repair_common"]
+[submodule "hyla_slam/hylacomylus/surface_repair_common"]
 	path = hyla_slam/hylacomylus/surface_repair_common
-	url = git@github.com:steven-swanbeck/surface_repair_common.git
+	url = git@github.com:swanbeck/surface_repair_common.git
 [submodule "kiss-icp"]
 	path = kiss-icp
 	url = https://github.com/PRBonn/kiss-icp.git
