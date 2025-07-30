@@ -6,12 +6,12 @@
 #include <filesystem>
 
 #include "types.hpp"
-#include "surface_repair_common/point_type.h"
+#include "point.h"
 
 namespace hylacomylus {
 
-using Point = FabricMaintenance::Point;
-using PointCloud = pcl::PointCloud<FabricMaintenance::Point>;
+using Point = hylacomylus::Point;
+using PointCloud = pcl::PointCloud<hylacomylus::Point>;
 
 struct Chunk {
     const hash256_t id;

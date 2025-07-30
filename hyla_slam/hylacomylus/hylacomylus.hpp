@@ -17,7 +17,7 @@
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
 
-#include "surface_repair_common/point_type.h"
+#include "point.h"
 #include "chunk.hpp"
 #include "hasher.hpp"
 #include "types.hpp"
