@@ -110,7 +110,7 @@ private:
     hyla_slam::Params params_;
 
     hylacomylus::MappingConfig mapping_config_;
-    hyla_icp::KissConfig localization_config_;
+    hyla_icp::LocalizationConfig localization_config_;
 
     bool localization_enabled_;
 

@@ -16,25 +16,21 @@
 
 namespace hyla_icp {
 
-struct KissConfig {
-    // map params
+struct LocalizationConfig {
     double voxel_size = 1.0;
     double max_range = 100.0;
     double min_range = 5.0;
     int max_points_per_voxel = 20;
 
-    // th parms
     double min_motion_th = 0.1;
     double initial_threshold = 2.0;
 
-    // registration params
     int max_num_iterations = 500;
     double convergence_criterion = 0.0001;
     int max_num_threads = 0;
 
-    // motion compensation
     bool deskew = false;
-}; // struct KissConfig
+}; // struct LocalizationConfig
 
 using Vector3dVector = std::vector<Eigen::Vector3d>;
 using Vector3dVectorTuple = std::tuple<Vector3dVector, Vector3dVector>;
@@ -42,7 +38,7 @@ using Vector3dVectorTuple = std::tuple<Vector3dVector, Vector3dVector>;
 class HylaIcp
 {
 public:
-    HylaIcp(const KissConfig &config);
+    HylaIcp(const LocalizationConfig &config);
 
 public:
     Vector3dVectorTuple registerFrame(const std::vector<Eigen::Vector3d> &frame);
@@ -70,7 +66,7 @@ private:
     Sophus::SE3d last_pose_;
     Sophus::SE3d last_delta_;
 
-    KissConfig config_;
+    LocalizationConfig config_;
     kiss_icp::Registration registration_;
     kiss_icp::VoxelHashMap local_map_;
     kiss_icp::AdaptiveThreshold adaptive_threshold_;

@@ -4,7 +4,7 @@
 
 namespace hyla_icp {
 
-HylaIcp::HylaIcp(const KissConfig &config)
+HylaIcp::HylaIcp(const LocalizationConfig &config)
     : config_(config),
       registration_(config.max_num_iterations, config.convergence_criterion, config.max_num_threads),
       local_map_(config.voxel_size, config.max_range, config.max_points_per_voxel),
@@ -22,7 +22,7 @@ Vector3dVectorTuple HylaIcp::registerFrame(const std::vector<Eigen::Vector3d> &f
     // get adaptive threshold
     auto sigma = adaptive_threshold_.ComputeThreshold();
 
-    // extrapolate last_delta_ (to remove constant timing assumption in constant velocity assumption)
+    // extrapolate last_delta_ (to remove constant timing assumption in constant velocity model)
     auto current_time {std::chrono::steady_clock::now()};
 
     std::optional<Sophus::SE3d> extrapolated_delta(std::nullopt);
