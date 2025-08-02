@@ -8,7 +8,8 @@
 </div>
 
 <div align="center">
-    <img src="./.asset/map.png" width="60%">
+    <!-- <img src="./.asset/map.png" width="60%"> -->
+    <img src="./.asset/logo.svg" width="80%">
 </div>
 
 # Hyla-SLAM
