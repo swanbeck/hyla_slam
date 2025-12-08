@@ -3,7 +3,7 @@
     <a href="https://github.com/swanbeck/hyla_slam/releases"><img src="https://img.shields.io/github/v/release/swanbeck/hyla_slam?label=version" /></a>
     <a href="https://github.com/swanbeck/hyla_slam/blob/main/LICENSE"><img src="https://img.shields.io/github/license/swanbeck/hyla_slam" /></a>
     <a href="https://github.com/swanbeck/hyla_slam/blob/main/"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a>
-    <!-- <a href=""><img src="https://img.shields.io/badge/Paper-B34700?logo=google-scholar&logoColor=white" /></a> -->
+    <a href="https://ieeexplore.ieee.org/document/11247133"><img src="https://img.shields.io/badge/Paper-B34700?logo=google-scholar&logoColor=white" /></a>
     <br />
 </div>
 
@@ -15,7 +15,7 @@
 # Hyla-SLAM
 Hyla-SLAM is a behavior tree-based, ROS-enabled SLAM framework that maximizes the scalability of 3D LiDAR-based SLAM via several facets. It uses dynamic data management strategies to flexibly preserve a subset of map data in memory while offloading unwanted data to disk, enabling building and maintaining extremely large maps on computationally constrained systems. Using its behavior tree interface, it can be flexibly reconfigured with additional pre- or post-processing stages to generate and use task-specific maps.
 
-For additional details, users are referred to our [paper]().
+For additional details, users are referred to our [paper](https://ieeexplore.ieee.org/document/11247133).
 
 <video src="https://github.com/user-attachments/assets/5b4163a9-44ef-4ea1-8492-9963a6845a20" autoplay loop muted controls width="50%"></video>
 
@@ -40,5 +40,16 @@ Hyla-SLAM is named after the 16th century German cartographer Martin Waldseemül
 </div>
 Waldseemüller, Martin. Universalis cosmographia secundum Ptholomaei traditionem et Americi Vespucii aliorumque lustrationes. [Strasbourg, France: s.n, 1507] Map. Retrieved from the Library of Congress, www.loc.gov/item/2003626426/.
 
-<!-- ### Citation
-If you find Hyla-SLAM useful in your work, please consider citing our paper: -->
+---
+### Citation
+If you find Hyla-SLAM useful in your work, please consider citing our paper:
+```
+@inproceedings{swanbeck_hyla_slam_2025,
+    author={Swanbeck, Steven and Pryor, Mitch},
+    booktitle={2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+    title={Hyla-SLAM: Toward Maximally Scalable 3D LiDAR-Based SLAM Using Dynamic Memory Management and Behavior Trees}, 
+    year={2025},
+    pages={1590-1597},
+    doi={10.1109/IROS60139.2025.11247133}
+}
+```
