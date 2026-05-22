@@ -11,8 +11,8 @@ PublishCloud::PublishCloud(const std::string name, const BT::NodeConfig &config)
 BT::PortsList PublishCloud::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("topic"),
-        BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("cloud"),
+        BT::InputPort<std::string>("topic", "Topic name to publish the cloud to."),
+        BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("cloud", "PointCloud2 message to publish."),
     };
 }
 

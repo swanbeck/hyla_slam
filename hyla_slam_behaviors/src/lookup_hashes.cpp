@@ -9,9 +9,9 @@ LookupHashes::LookupHashes(const std::string name, const BT::NodeConfig &config)
 BT::PortsList LookupHashes::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<int>("location"),
-        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("hashes"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<int>("location", "Location index to look up hashes for."),
+        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("hashes", "Retrieved list of data hashes for the specified location."),
     };
 }
 

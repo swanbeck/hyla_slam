@@ -9,12 +9,12 @@ IndexData::IndexData(const std::string name, const BT::NodeConfig &config)
 BT::PortsList IndexData::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud"),
-        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform"),
-        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform"),
-        BT::InputPort<bool>("unload_data"),
-        BT::OutputPort<double>("time_ms"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("point_cloud", "Point cloud data to index."),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("local_transform", "Local transform to associate with the indexed data. Used only if global_transform is also provided."),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::TransformStamped>>("global_transform", "Global transform for the indexed data. If provided, skips the internal transform lookup."),
+        BT::InputPort<bool>("unload_data", "If true, unloads data from active memory after indexing."),
+        BT::OutputPort<double>("time_ms", "Time taken for the indexing operation in milliseconds."),
     };
 }
 

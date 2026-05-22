@@ -9,8 +9,8 @@ GetPose::GetPose(const std::string name, const BT::NodeConfig &config)
 BT::PortsList GetPose::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", "Retrieved current PoseStamped estimate."),
     };
 }
 

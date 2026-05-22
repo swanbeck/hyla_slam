@@ -9,7 +9,7 @@ EnableLocalization::EnableLocalization(const std::string name, const BT::NodeCon
 BT::PortsList EnableLocalization::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
     };
 }
 

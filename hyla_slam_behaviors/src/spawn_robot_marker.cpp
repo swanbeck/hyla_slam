@@ -14,8 +14,8 @@ SpawnRobotMarker::SpawnRobotMarker(const std::string name, const BT::NodeConfig 
 BT::PortsList SpawnRobotMarker::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("frame_id"),
-        BT::InputPort<std::string>("mesh_path"),
+        BT::InputPort<std::string>("frame_id", "TF frame ID the marker is attached to."),
+        BT::InputPort<std::string>("mesh_path", "Path to a mesh resource for the marker. If not provided, a cube is used."),
     };
 }
 

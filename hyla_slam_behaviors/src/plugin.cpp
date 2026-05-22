@@ -37,4 +37,59 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory &factory) {
     factory.registerNodeType<hyla_slam_behaviors::SpawnRobotMarker>("SpawnRobotMarker");
     factory.registerNodeType<hyla_slam_behaviors::UnloadData>("UnloadData");
     factory.registerNodeType<hyla_slam_behaviors::UpdateLocalizationMap>("UpdateLocalizationMap");
+
+    factory.addMetadataToManifest("ConstructPose", {
+        {"description", "Constructs a PoseStamped message from position and orientation components."},
+    });
+    factory.addMetadataToManifest("DisableLocalization", {
+        {"description", "Disables localization on the hyla_slam node."},
+    });
+    factory.addMetadataToManifest("EnableLocalization", {
+        {"description", "Enables localization on the hyla_slam node."},
+    });
+    factory.addMetadataToManifest("GeodeticToEcef", {
+        {"description", "Converts geodetic coordinates (latitude, longitude, height) to an ECEF PoseStamped."},
+    });
+    factory.addMetadataToManifest("GetLocalizationDisplacement", {
+        {"description", "Gets the localization displacement and returns SUCCESS if it exceeds a linear or angular target threshold."},
+    });
+    factory.addMetadataToManifest("GetMap", {
+        {"description", "Gets the current point cloud map from the hyla_slam node."},
+    });
+    factory.addMetadataToManifest("GetMapSimilarity", {
+        {"description", "Gets the map similarity score and returns SUCCESS if it exceeds a provided threshold."},
+    });
+    factory.addMetadataToManifest("GetMappingDisplacement", {
+        {"description", "Gets the mapping displacement and returns SUCCESS if it exceeds a linear or angular target threshold."},
+    });
+    factory.addMetadataToManifest("GetPose", {
+        {"description", "Gets the current pose estimate from the hyla_slam node."},
+    });
+    factory.addMetadataToManifest("IndexData", {
+        {"description", "Indexes a point cloud into the hyla_slam data store."},
+    });
+    factory.addMetadataToManifest("LoadData", {
+        {"description", "Loads data into the hyla_slam node's active memory."},
+    });
+    factory.addMetadataToManifest("LookupHashes", {
+        {"description", "Looks up data hashes for a given location index."},
+    });
+    factory.addMetadataToManifest("ManageLocalStorage", {
+        {"description", "Determines which data files to load and unload based on current pose and map similarity."},
+    });
+    factory.addMetadataToManifest("PublishCloud", {
+        {"description", "Publishes a point cloud to a specified ROS2 topic."},
+    });
+    factory.addMetadataToManifest("SetLocalizationEstimate", {
+        {"description", "Sets the initial localization estimate pose on the hyla_slam node."},
+    });
+    factory.addMetadataToManifest("SpawnRobotMarker", {
+        {"description", "Publishes a visualization marker for the robot coincident with a given TF frame."},
+    });
+    factory.addMetadataToManifest("UnloadData", {
+        {"description", "Unloads data from the hyla_slam node's active memory."},
+    });
+    factory.addMetadataToManifest("UpdateLocalizationMap", {
+        {"description", "Triggers an update of the localization map on the hyla_slam node."},
+    });
 }

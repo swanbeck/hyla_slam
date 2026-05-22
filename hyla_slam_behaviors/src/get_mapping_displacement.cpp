@@ -9,9 +9,9 @@ GetMappingDisplacement::GetMappingDisplacement(const std::string name, const BT:
 BT::PortsList GetMappingDisplacement::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<double>("linear_target"),
-        BT::InputPort<double>("angular_target"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<double>("linear_target", "Linear displacement threshold in meters. Returns SUCCESS if exceeded. Disabled if negative."),
+        BT::InputPort<double>("angular_target", "Angular displacement threshold in radians. Returns SUCCESS if exceeded. Disabled if negative."),
     };
 }
 

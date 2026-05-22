@@ -61,12 +61,12 @@ GeodeticToEcef::GeodeticToEcef(const std::string name, const BT::NodeConfig &con
 BT::PortsList GeodeticToEcef::providedPorts()
 {
     return {
-        BT::InputPort<double>("latitude"),
-        BT::InputPort<double>("longitude"),
-        BT::InputPort<double>("height"),
-        BT::InputPort<double>("heading"),
-        BT::InputPort<std::string>("frame"),
-        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
+        BT::InputPort<double>("latitude", "Geodetic latitude in degrees."),
+        BT::InputPort<double>("longitude", "Geodetic longitude in degrees."),
+        BT::InputPort<double>("height", "Height above the Earth's surface in meters."),
+        BT::InputPort<double>("heading", "Extra rotation angle around the up vector in degrees."),
+        BT::InputPort<std::string>("frame", "TF frame ID for the output pose header."),
+        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", "Computed ECEF PoseStamped."),
     };
 }
 

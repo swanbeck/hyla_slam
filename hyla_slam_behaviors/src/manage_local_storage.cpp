@@ -9,13 +9,13 @@ ManageLocalStorage::ManageLocalStorage(const std::string name, const BT::NodeCon
 BT::PortsList ManageLocalStorage::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
-        BT::InputPort<double>("similarity_threshold"),
-        BT::InputPort<double>("radius"),
-        BT::InputPort<std::shared_ptr<std::deque<std::string>>>("search_hashes"),
-        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("load_files"),
-        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("unload_files"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", "Current pose used for proximity-based storage management."),
+        BT::InputPort<double>("similarity_threshold", "Map similarity threshold below which data may be swapped."),
+        BT::InputPort<double>("radius", "Radius in meters used to determine relevant nearby data."),
+        BT::InputPort<std::shared_ptr<std::deque<std::string>>>("search_hashes", "Optional list of hashes to consider when determining storage changes."),
+        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("load_files", "List of data file hashes to load into active memory."),
+        BT::OutputPort<std::shared_ptr<std::deque<std::string>>>("unload_files", "List of data file hashes to unload from active memory."),
     };
 }
 

@@ -9,8 +9,8 @@ SetLocalizationEstimate::SetLocalizationEstimate(const std::string name, const B
 BT::PortsList SetLocalizationEstimate::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", "Initial localization estimate pose. If not provided, sets an identity pose."),
     };
 }
 

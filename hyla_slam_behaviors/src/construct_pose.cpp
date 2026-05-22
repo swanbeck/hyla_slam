@@ -9,16 +9,16 @@ ConstructPose::ConstructPose(const std::string name, const BT::NodeConfig &confi
 BT::PortsList ConstructPose::providedPorts()
 {
     return {
-        BT::InputPort<std::shared_ptr<geometry_msgs::msg::Point>>("point"),
-        BT::InputPort<double>("x"),
-        BT::InputPort<double>("y"),
-        BT::InputPort<double>("z"),
-        BT::InputPort<double>("qw"),
-        BT::InputPort<double>("qx"),
-        BT::InputPort<double>("qy"),
-        BT::InputPort<double>("qz"),
-        BT::InputPort<std::string>("frame_id"),
-        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose")
+        BT::InputPort<std::shared_ptr<geometry_msgs::msg::Point>>("point", "Optional Point message; if provided, x/y/z values are taken from it instead of the scalar ports."),
+        BT::InputPort<double>("x", 0.0, "X position component. Used only if point is not provided."),
+        BT::InputPort<double>("y", 0.0, "Y position component. Used only if point is not provided."),
+        BT::InputPort<double>("z", 0.0, "Z position component. Used only if point is not provided."),
+        BT::InputPort<double>("qw", 1.0, "Quaternion w component."),
+        BT::InputPort<double>("qx", 0.0, "Quaternion x component."),
+        BT::InputPort<double>("qy", 0.0, "Quaternion y component."),
+        BT::InputPort<double>("qz", 0.0, "Quaternion z component."),
+        BT::InputPort<std::string>("frame_id", "world", "TF frame ID for the pose header."),
+        BT::OutputPort<std::shared_ptr<geometry_msgs::msg::PoseStamped>>("pose", "Constructed PoseStamped message.")
     };
 }
 

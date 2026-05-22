@@ -9,12 +9,12 @@ GetMap::GetMap(const std::string name, const BT::NodeConfig &config)
 BT::PortsList GetMap::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<bool>("all_memory_data"),
-        BT::InputPort<bool>("dense"),
-        BT::InputPort<bool>("project"),
-        BT::InputPort<double>("radius"),
-        BT::OutputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("map"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<bool>("all_memory_data", false, "If true, returns all in-memory data rather than a radius-filtered map."),
+        BT::InputPort<bool>("dense", true, "If true, returns the dense (high-resolution) map."),
+        BT::InputPort<bool>("project", true, "If true, projects the map before returning."),
+        BT::InputPort<double>("radius", 10.0, "Radius in meters for filtering the returned map."),
+        BT::OutputPort<std::shared_ptr<sensor_msgs::msg::PointCloud2>>("map", "Retrieved PointCloud2 map."),
     };
 }
 

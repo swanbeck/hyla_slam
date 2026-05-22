@@ -9,8 +9,8 @@ GetMapSimilarity::GetMapSimilarity(const std::string name, const BT::NodeConfig 
 BT::PortsList GetMapSimilarity::providedPorts()
 {
     return {
-        BT::InputPort<std::string>("remote_hostname"),
-        BT::InputPort<double>("threshold"),
+        BT::InputPort<std::string>("remote_hostname", "Hostname of the remote robot to call the service on. If not provided, calls the service in the local namespace."),
+        BT::InputPort<double>("threshold", "Similarity score threshold. Returns SUCCESS if the score exceeds this value."),
     };
 }
 
